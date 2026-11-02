@@ -1,0 +1,63 @@
+# Local configuration and secrets (keep the sanitized template)
+.env
+.env.*
+!.env.example
+
+# Database CA certificates and private keys
+certs/
+*.pem
+*.key
+*.p12
+*.pfx
+
+# Python environments and generated files
+.venv/
+venv/
+__pycache__/
+*.py[cod]
+*.egg-info/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+.coverage.*
+htmlcov/
+coverage.xml
+build/
+
+# Bronze raw data, model artifacts, database files and backups
+data/
+artifacts/
+backups/
+dumps/
+*.db
+*.sqlite
+*.sqlite3
+/*.sql
+/*.sql.gz
+/*.dump
+
+# Logs and temporary files
+logs/
+*.log
+*.tmp
+*.swp
+*.swo
+
+# Frontend dependencies and build output
+node_modules/
+dist/
+coverage/
+
+# Deployment bundles generated at the project root
+/*.zip
+/*.tar.gz
+
+# Local editor and operating-system files
+.idea/
+.vscode/
+.DS_Store
+Thumbs.db
+Desktop.ini
+
+# Keep .github/, config/, database/migrations/, docs/ and tests/ tracked.

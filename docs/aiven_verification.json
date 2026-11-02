@@ -1,0 +1,46 @@
+{
+  "target": "Aiven MySQL (credentials omitted)",
+  "server_version": "8.4.11",
+  "migration_revision": "0003_bronze",
+  "session_timezone": "+00:00",
+  "tls_encrypted": true,
+  "missing_model_columns": {
+    "stations": [],
+    "collection_runs": [],
+    "bike_observations": [],
+    "weather_observations": [],
+    "observation_weather_links": []
+  },
+  "table_counts": {
+    "stations": 5,
+    "collection_runs": 1,
+    "bike_observations": 5,
+    "weather_observations": 5,
+    "observation_weather_links": 5
+  },
+  "latest_run": {
+    "id": 1,
+    "status": "success",
+    "success_count": 5,
+    "error_count": 0,
+    "sampled_at_utc": "2026-11-02T16:51:39+00:00",
+    "sampled_at_new_york": "2026-11-02T11:51:39-05:00"
+  },
+  "invalid_station_weather_coordinate_links": 0,
+  "duplicate_bike_samples": 0,
+  "bronze_storage": "local Windows disk, not uploaded to cloud",
+  "bronze_manifest": "citibike/2026/11/02/run_1/attempt_1_aef69e29e29b4331854c0cbd5c743afc/manifest.json",
+  "bronze_verification": {
+    "collection_run_id": 1,
+    "collection_attempt": 1,
+    "capture_status": "complete",
+    "response_count": 8,
+    "verified_bodies": 8,
+    "json_bodies": 8,
+    "network_failures": 0,
+    "weather_reuse": 0
+  },
+  "tests_passed": 110,
+  "collector_invocations": 1,
+  "background_scheduler_started": false
+}

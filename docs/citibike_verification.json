@@ -1,0 +1,237 @@
+{
+  "verified_at_utc": "2026-10-31T18:16:02.845677+00:00",
+  "client_date": "2026-11-01 Asia/Bangkok",
+  "migration": "0002_citibike",
+  "counts": {
+    "stations": 5,
+    "collection_runs": 1,
+    "bike_observations": 5,
+    "weather_observations": 5,
+    "observation_weather_links": 5
+  },
+  "run": {
+    "id": 1,
+    "source": "citibike",
+    "scheduled_at": "2026-10-31T18:10:00+00:00",
+    "started_at": "2026-10-31T18:13:39.604000+00:00",
+    "finished_at": "2026-10-31T18:13:52.194000+00:00",
+    "status": "success",
+    "success_count": 5,
+    "error_count": 0,
+    "attempt_count": 1,
+    "feed_metadata": {
+      "version": "1.1",
+      "status_ttl": 60,
+      "status_count": 2518,
+      "discovery_url": "https://gbfs.citibikenyc.com/gbfs/gbfs.json",
+      "information_count": 2518,
+      "station_status_url": "https://gbfs.lyft.com/gbfs/1.1/bkn/en/station_status.json",
+      "status_collected_at": "2026-10-31T18:13:45.030820+00:00",
+      "status_last_updated": "2026-10-31T18:12:46+00:00",
+      "station_information_url": "https://gbfs.lyft.com/gbfs/1.1/bkn/en/station_information.json",
+      "information_collected_at": "2026-10-31T18:13:43.107834+00:00",
+      "information_last_updated": "2026-10-31T18:12:46+00:00"
+    }
+  },
+  "stations": [
+    {
+      "source": "citibike",
+      "station_id": "0096fecb-3a56-4585-9204-aa9554f7bc49",
+      "name": "E 5 St & Ave A",
+      "latitude": "40.7247900",
+      "longitude": "-73.9843010",
+      "capacity": 48,
+      "rack_count": null,
+      "available_bikes": 10,
+      "available_docks": 32,
+      "is_installed": 1,
+      "is_renting": 1,
+      "is_returning": 1,
+      "quality_status": "valid",
+      "source_observed_at": "2026-10-31T18:11:31+00:00",
+      "collected_at": "2026-10-31T18:13:45.031000+00:00",
+      "feed_last_updated": "2026-10-31T18:12:46+00:00",
+      "gbfs_version": "1.1",
+      "requested_latitude": "40.7247900",
+      "requested_longitude": "-73.9843010",
+      "weather_time": "2026-10-31T18:00:00+00:00",
+      "weather_collected_at": "2026-10-31T18:13:46.524000+00:00",
+      "units": {
+        "rain": "mm",
+        "temperature_2m": "°C",
+        "wind_speed_10m": "m/s",
+        "relative_humidity_2m": "%"
+      }
+    },
+    {
+      "source": "citibike",
+      "station_id": "00d3e65e-b614-4408-aaa9-939ed96ce645",
+      "name": "Perry St & Greenwich Ave",
+      "latitude": "40.7359180",
+      "longitude": "-74.0009390",
+      "capacity": 53,
+      "rack_count": null,
+      "available_bikes": 50,
+      "available_docks": 1,
+      "is_installed": 1,
+      "is_renting": 1,
+      "is_returning": 1,
+      "quality_status": "valid",
+      "source_observed_at": "2026-10-31T18:11:55+00:00",
+      "collected_at": "2026-10-31T18:13:45.031000+00:00",
+      "feed_last_updated": "2026-10-31T18:12:46+00:00",
+      "gbfs_version": "1.1",
+      "requested_latitude": "40.7359180",
+      "requested_longitude": "-74.0009390",
+      "weather_time": "2026-10-31T18:00:00+00:00",
+      "weather_collected_at": "2026-10-31T18:13:47.967000+00:00",
+      "units": {
+        "rain": "mm",
+        "temperature_2m": "°C",
+        "wind_speed_10m": "m/s",
+        "relative_humidity_2m": "%"
+      }
+    },
+    {
+      "source": "citibike",
+      "station_id": "0138452a-b9f4-4aee-80b0-7fae9a122ffe",
+      "name": "E 54 St & 1 Ave",
+      "latitude": "40.7562650",
+      "longitude": "-73.9641790",
+      "capacity": 61,
+      "rack_count": null,
+      "available_bikes": 47,
+      "available_docks": 13,
+      "is_installed": 1,
+      "is_renting": 1,
+      "is_returning": 1,
+      "quality_status": "valid",
+      "source_observed_at": "2026-10-31T18:11:52+00:00",
+      "collected_at": "2026-10-31T18:13:45.031000+00:00",
+      "feed_last_updated": "2026-10-31T18:12:46+00:00",
+      "gbfs_version": "1.1",
+      "requested_latitude": "40.7562650",
+      "requested_longitude": "-73.9641790",
+      "weather_time": "2026-10-31T18:00:00+00:00",
+      "weather_collected_at": "2026-10-31T18:13:49.382000+00:00",
+      "units": {
+        "rain": "mm",
+        "temperature_2m": "°C",
+        "wind_speed_10m": "m/s",
+        "relative_humidity_2m": "%"
+      }
+    },
+    {
+      "source": "citibike",
+      "station_id": "014a931b-8e1c-438a-8a22-f267ddd1e0d2",
+      "name": "Peck Slip & South St",
+      "latitude": "40.7075190",
+      "longitude": "-74.0010810",
+      "capacity": 45,
+      "rack_count": null,
+      "available_bikes": 35,
+      "available_docks": 2,
+      "is_installed": 1,
+      "is_renting": 1,
+      "is_returning": 1,
+      "quality_status": "valid",
+      "source_observed_at": "2026-10-31T18:12:00+00:00",
+      "collected_at": "2026-10-31T18:13:45.031000+00:00",
+      "feed_last_updated": "2026-10-31T18:12:46+00:00",
+      "gbfs_version": "1.1",
+      "requested_latitude": "40.7075190",
+      "requested_longitude": "-74.0010810",
+      "weather_time": "2026-10-31T18:00:00+00:00",
+      "weather_collected_at": "2026-10-31T18:13:50.792000+00:00",
+      "units": {
+        "rain": "mm",
+        "temperature_2m": "°C",
+        "wind_speed_10m": "m/s",
+        "relative_humidity_2m": "%"
+      }
+    },
+    {
+      "source": "citibike",
+      "station_id": "053312f2-e77e-4674-b28b-ad357fbcb4ee",
+      "name": "8 Ave & W 49 St",
+      "latitude": "40.7617120",
+      "longitude": "-73.9865510",
+      "capacity": 65,
+      "rack_count": null,
+      "available_bikes": 3,
+      "available_docks": 53,
+      "is_installed": 1,
+      "is_renting": 1,
+      "is_returning": 1,
+      "quality_status": "valid",
+      "source_observed_at": "2026-10-31T18:11:20+00:00",
+      "collected_at": "2026-10-31T18:13:45.031000+00:00",
+      "feed_last_updated": "2026-10-31T18:12:46+00:00",
+      "gbfs_version": "1.1",
+      "requested_latitude": "40.7617120",
+      "requested_longitude": "-73.9865510",
+      "weather_time": "2026-10-31T18:00:00+00:00",
+      "weather_collected_at": "2026-10-31T18:13:52.182000+00:00",
+      "units": {
+        "rain": "mm",
+        "temperature_2m": "°C",
+        "wind_speed_10m": "m/s",
+        "relative_humidity_2m": "%"
+      }
+    }
+  ],
+  "coordinates_match": true,
+  "timestamp_order_valid": true,
+  "duplicate_groups": 0,
+  "unique_keys": {
+    "bike_observations": [
+      {
+        "name": "uq_bike_source_station_sample",
+        "column_names": [
+          "source",
+          "station_id",
+          "sampled_at"
+        ],
+        "duplicates_index": "uq_bike_source_station_sample"
+      }
+    ],
+    "collection_runs": [
+      {
+        "name": "uq_run_source_sample",
+        "column_names": [
+          "source",
+          "scheduled_at"
+        ],
+        "duplicates_index": "uq_run_source_sample"
+      }
+    ],
+    "weather_observations": [
+      {
+        "name": "uq_weather_location_time",
+        "column_names": [
+          "source",
+          "requested_latitude",
+          "requested_longitude",
+          "weather_time",
+          "interval_seconds"
+        ],
+        "duplicates_index": "uq_weather_location_time"
+      },
+      {
+        "name": "uq_weather_location_time_source",
+        "column_names": [
+          "requested_latitude",
+          "requested_longitude",
+          "weather_time",
+          "source"
+        ],
+        "duplicates_index": "uq_weather_location_time_source"
+      }
+    ]
+  },
+  "scheduler_started": false,
+  "live_collection_calls": 1,
+  "live_mysql_lock_verified": true,
+  "automated_tests_passed": 68,
+  "migration_legacy_rows_before": 0
+}

@@ -1,0 +1,15 @@
+{
+  "source": "citibike",
+  "station_ids": [
+    "0096fecb-3a56-4585-9204-aa9554f7bc49",
+    "00d3e65e-b614-4408-aaa9-939ed96ce645",
+    "0138452a-b9f4-4aee-80b0-7fae9a122ffe",
+    "014a931b-8e1c-438a-8a22-f267ddd1e0d2",
+    "053312f2-e77e-4674-b28b-ad357fbcb4ee",
+    "66de2625-0aca-11e7-82f6-3863bb44ef7c",
+    "66dccc99-0aca-11e7-82f6-3863bb44ef7c",
+    "c3b255d8-b690-4825-b1e9-a1d1680e5542",
+    "66dd4ec7-0aca-11e7-82f6-3863bb44ef7c",
+    "66dd45c7-0aca-11e7-82f6-3863bb44ef7c"
+  ]
+}
