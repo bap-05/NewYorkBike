@@ -1,0 +1,35 @@
+{
+  "verified_at_utc": "2026-10-31T19:19:06.029612+00:00",
+  "client_date": "2026-11-01 Asia/Bangkok",
+  "migration": "0003_bronze",
+  "run": {
+    "id": 2,
+    "source": "citibike",
+    "status": "success",
+    "attempt_count": 1,
+    "bronze_manifest_path": "citibike/2026/10/31/run_2/attempt_1_593837fee7804ea98c7010d7ba4f25a5/manifest.json"
+  },
+  "archive_verification": {
+    "collection_run_id": 2,
+    "collection_attempt": 1,
+    "capture_status": "complete",
+    "response_count": 8,
+    "verified_bodies": 8,
+    "json_bodies": 8,
+    "network_failures": 0,
+    "weather_reuse": 0
+  },
+  "new_silver_rows": {
+    "bike_observations": 5,
+    "weather_observations": 5
+  },
+  "legacy_run_1_manifest_still_null": true,
+  "sources": {
+    "citibike": 3,
+    "open-meteo": 5
+  },
+  "all_http_200": true,
+  "live_collection_calls_for_bronze_verification": 1,
+  "scheduler_started": false,
+  "gold_generated": false
+}

@@ -1,0 +1,22 @@
+[Unit]
+Description=Citi Bike ingestion (immediate, then New York minute 00/30)
+Wants=network-online.target
+After=network-online.target mysql.service
+StartLimitIntervalSec=300
+StartLimitBurst=5
+
+[Service]
+Type=simple
+User=ubuntu
+Group=ubuntu
+WorkingDirectory=/home/ubuntu/citibike
+Environment=PYTHONUNBUFFERED=1
+ExecStart=/home/ubuntu/citibike/.venv/bin/python -m ingestion.main --schedule
+Restart=on-failure
+RestartSec=30
+KillSignal=SIGINT
+TimeoutStopSec=90
+UMask=0077
+
+[Install]
+WantedBy=multi-user.target

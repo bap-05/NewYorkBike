@@ -1,0 +1,583 @@
+{
+  "bike_observations": {
+    "row_count": 0,
+    "columns": [
+      {
+        "name": "id",
+        "type": "BIGINT",
+        "default": null,
+        "comment": null,
+        "nullable": false,
+        "autoincrement": true
+      },
+      {
+        "name": "station_id",
+        "type": "VARCHAR(50)",
+        "default": null,
+        "comment": null,
+        "nullable": false
+      },
+      {
+        "name": "collection_run_id",
+        "type": "BIGINT",
+        "default": null,
+        "comment": null,
+        "nullable": false,
+        "autoincrement": false
+      },
+      {
+        "name": "sampled_at",
+        "type": "DATETIME",
+        "default": null,
+        "comment": null,
+        "nullable": false
+      },
+      {
+        "name": "collected_at",
+        "type": "DATETIME",
+        "default": "CURRENT_TIMESTAMP(3)",
+        "comment": null,
+        "nullable": false
+      },
+      {
+        "name": "source_observed_at",
+        "type": "DATETIME",
+        "default": null,
+        "comment": null,
+        "nullable": true
+      },
+      {
+        "name": "available_bikes",
+        "type": "INTEGER",
+        "default": null,
+        "comment": null,
+        "nullable": false,
+        "autoincrement": false
+      },
+      {
+        "name": "quality_status",
+        "type": "ENUM",
+        "default": "'valid'",
+        "comment": null,
+        "nullable": false
+      }
+    ],
+    "primary_key": {
+      "constrained_columns": [
+        "id"
+      ],
+      "name": null
+    },
+    "foreign_keys": [
+      {
+        "name": "fk_bike_collection_run",
+        "constrained_columns": [
+          "collection_run_id"
+        ],
+        "referred_schema": null,
+        "referred_table": "collection_runs",
+        "referred_columns": [
+          "id"
+        ],
+        "options": {
+          "onupdate": "RESTRICT",
+          "ondelete": "RESTRICT"
+        }
+      },
+      {
+        "name": "fk_bike_station",
+        "constrained_columns": [
+          "station_id"
+        ],
+        "referred_schema": null,
+        "referred_table": "stations",
+        "referred_columns": [
+          "station_id"
+        ],
+        "options": {
+          "onupdate": "RESTRICT",
+          "ondelete": "RESTRICT"
+        }
+      }
+    ],
+    "unique_constraints": [
+      {
+        "name": "uq_bike_station_sample",
+        "column_names": [
+          "station_id",
+          "sampled_at"
+        ],
+        "duplicates_index": "uq_bike_station_sample"
+      }
+    ],
+    "indexes": [
+      {
+        "name": "idx_bike_collected",
+        "column_names": [
+          "collected_at"
+        ],
+        "unique": false
+      },
+      {
+        "name": "idx_bike_run",
+        "column_names": [
+          "collection_run_id"
+        ],
+        "unique": false
+      },
+      {
+        "name": "uq_bike_station_sample",
+        "column_names": [
+          "station_id",
+          "sampled_at"
+        ],
+        "unique": true,
+        "type": "UNIQUE"
+      }
+    ]
+  },
+  "collection_runs": {
+    "row_count": 0,
+    "columns": [
+      {
+        "name": "id",
+        "type": "BIGINT",
+        "default": null,
+        "comment": null,
+        "nullable": false,
+        "autoincrement": true
+      },
+      {
+        "name": "source",
+        "type": "ENUM",
+        "default": null,
+        "comment": null,
+        "nullable": false
+      },
+      {
+        "name": "scheduled_at",
+        "type": "DATETIME",
+        "default": null,
+        "comment": null,
+        "nullable": false
+      },
+      {
+        "name": "started_at",
+        "type": "DATETIME",
+        "default": "CURRENT_TIMESTAMP(3)",
+        "comment": null,
+        "nullable": false
+      },
+      {
+        "name": "finished_at",
+        "type": "DATETIME",
+        "default": null,
+        "comment": null,
+        "nullable": true
+      },
+      {
+        "name": "status",
+        "type": "ENUM",
+        "default": "'running'",
+        "comment": null,
+        "nullable": false
+      },
+      {
+        "name": "success_count",
+        "type": "INTEGER",
+        "default": "'0'",
+        "comment": null,
+        "nullable": false,
+        "autoincrement": false
+      },
+      {
+        "name": "error_count",
+        "type": "INTEGER",
+        "default": "'0'",
+        "comment": null,
+        "nullable": false,
+        "autoincrement": false
+      },
+      {
+        "name": "error_summary",
+        "type": "TEXT",
+        "default": null,
+        "comment": null,
+        "nullable": true
+      }
+    ],
+    "primary_key": {
+      "constrained_columns": [
+        "id"
+      ],
+      "name": null
+    },
+    "foreign_keys": [],
+    "unique_constraints": [],
+    "indexes": [
+      {
+        "name": "idx_runs_source_time",
+        "column_names": [
+          "source",
+          "scheduled_at"
+        ],
+        "unique": false
+      },
+      {
+        "name": "idx_runs_status_time",
+        "column_names": [
+          "status",
+          "started_at"
+        ],
+        "unique": false
+      }
+    ]
+  },
+  "observation_weather_links": {
+    "row_count": 0,
+    "columns": [
+      {
+        "name": "bike_observation_id",
+        "type": "BIGINT",
+        "default": null,
+        "comment": null,
+        "nullable": false,
+        "autoincrement": false
+      },
+      {
+        "name": "weather_observation_id",
+        "type": "BIGINT",
+        "default": null,
+        "comment": null,
+        "nullable": false,
+        "autoincrement": false
+      }
+    ],
+    "primary_key": {
+      "constrained_columns": [
+        "bike_observation_id"
+      ],
+      "name": null
+    },
+    "foreign_keys": [
+      {
+        "name": "fk_link_bike",
+        "constrained_columns": [
+          "bike_observation_id"
+        ],
+        "referred_schema": null,
+        "referred_table": "bike_observations",
+        "referred_columns": [
+          "id"
+        ],
+        "options": {
+          "onupdate": "RESTRICT",
+          "ondelete": "RESTRICT"
+        }
+      },
+      {
+        "name": "fk_link_weather",
+        "constrained_columns": [
+          "weather_observation_id"
+        ],
+        "referred_schema": null,
+        "referred_table": "weather_observations",
+        "referred_columns": [
+          "id"
+        ],
+        "options": {
+          "onupdate": "RESTRICT",
+          "ondelete": "RESTRICT"
+        }
+      }
+    ],
+    "unique_constraints": [],
+    "indexes": [
+      {
+        "name": "idx_link_weather",
+        "column_names": [
+          "weather_observation_id"
+        ],
+        "unique": false
+      }
+    ]
+  },
+  "stations": {
+    "row_count": 0,
+    "columns": [
+      {
+        "name": "station_id",
+        "type": "VARCHAR(50)",
+        "default": null,
+        "comment": null,
+        "nullable": false
+      },
+      {
+        "name": "name",
+        "type": "VARCHAR(255)",
+        "default": null,
+        "comment": null,
+        "nullable": false
+      },
+      {
+        "name": "latitude",
+        "type": "DECIMAL(10, 7)",
+        "default": null,
+        "comment": null,
+        "nullable": false
+      },
+      {
+        "name": "longitude",
+        "type": "DECIMAL(10, 7)",
+        "default": null,
+        "comment": null,
+        "nullable": false
+      },
+      {
+        "name": "rack_count",
+        "type": "INTEGER",
+        "default": null,
+        "comment": null,
+        "nullable": true,
+        "autoincrement": false
+      },
+      {
+        "name": "is_monitored",
+        "type": "TINYINT",
+        "default": "'0'",
+        "comment": null,
+        "nullable": false,
+        "autoincrement": false
+      },
+      {
+        "name": "created_at",
+        "type": "DATETIME",
+        "default": "CURRENT_TIMESTAMP(3)",
+        "comment": null,
+        "nullable": false
+      },
+      {
+        "name": "updated_at",
+        "type": "DATETIME",
+        "default": "CURRENT_TIMESTAMP(3) ON UPDATE CURRENT_TIMESTAMP(3)",
+        "comment": null,
+        "nullable": false
+      }
+    ],
+    "primary_key": {
+      "constrained_columns": [
+        "station_id"
+      ],
+      "name": null
+    },
+    "foreign_keys": [],
+    "unique_constraints": [],
+    "indexes": [
+      {
+        "name": "idx_stations_monitored",
+        "column_names": [
+          "is_monitored"
+        ],
+        "unique": false
+      }
+    ]
+  },
+  "weather_observations": {
+    "row_count": 0,
+    "columns": [
+      {
+        "name": "id",
+        "type": "BIGINT",
+        "default": null,
+        "comment": null,
+        "nullable": false,
+        "autoincrement": true
+      },
+      {
+        "name": "collection_run_id",
+        "type": "BIGINT",
+        "default": null,
+        "comment": null,
+        "nullable": false,
+        "autoincrement": false
+      },
+      {
+        "name": "source",
+        "type": "VARCHAR(50)",
+        "default": "'open_meteo'",
+        "comment": null,
+        "nullable": false
+      },
+      {
+        "name": "requested_latitude",
+        "type": "DECIMAL(10, 7)",
+        "default": null,
+        "comment": null,
+        "nullable": false
+      },
+      {
+        "name": "requested_longitude",
+        "type": "DECIMAL(10, 7)",
+        "default": null,
+        "comment": null,
+        "nullable": false
+      },
+      {
+        "name": "returned_latitude",
+        "type": "DECIMAL(10, 7)",
+        "default": null,
+        "comment": null,
+        "nullable": true
+      },
+      {
+        "name": "returned_longitude",
+        "type": "DECIMAL(10, 7)",
+        "default": null,
+        "comment": null,
+        "nullable": true
+      },
+      {
+        "name": "weather_time",
+        "type": "DATETIME",
+        "default": null,
+        "comment": null,
+        "nullable": false
+      },
+      {
+        "name": "collected_at",
+        "type": "DATETIME",
+        "default": "CURRENT_TIMESTAMP(3)",
+        "comment": null,
+        "nullable": false
+      },
+      {
+        "name": "temperature",
+        "type": "DECIMAL(6, 2)",
+        "default": null,
+        "comment": null,
+        "nullable": true
+      },
+      {
+        "name": "humidity",
+        "type": "DECIMAL(5, 2)",
+        "default": null,
+        "comment": null,
+        "nullable": true
+      },
+      {
+        "name": "rain",
+        "type": "DECIMAL(10, 3)",
+        "default": null,
+        "comment": null,
+        "nullable": true
+      },
+      {
+        "name": "wind_speed",
+        "type": "DECIMAL(8, 3)",
+        "default": null,
+        "comment": null,
+        "nullable": true
+      },
+      {
+        "name": "temperature_unit",
+        "type": "VARCHAR(20)",
+        "default": "'celsius'",
+        "comment": null,
+        "nullable": false
+      },
+      {
+        "name": "humidity_unit",
+        "type": "VARCHAR(20)",
+        "default": "'%'",
+        "comment": null,
+        "nullable": false
+      },
+      {
+        "name": "rain_unit",
+        "type": "VARCHAR(20)",
+        "default": "'mm'",
+        "comment": null,
+        "nullable": false
+      },
+      {
+        "name": "wind_speed_unit",
+        "type": "VARCHAR(20)",
+        "default": "'km/h'",
+        "comment": null,
+        "nullable": false
+      },
+      {
+        "name": "interval_seconds",
+        "type": "INTEGER",
+        "default": null,
+        "comment": null,
+        "nullable": false,
+        "autoincrement": false
+      }
+    ],
+    "primary_key": {
+      "constrained_columns": [
+        "id"
+      ],
+      "name": null
+    },
+    "foreign_keys": [
+      {
+        "name": "fk_weather_collection_run",
+        "constrained_columns": [
+          "collection_run_id"
+        ],
+        "referred_schema": null,
+        "referred_table": "collection_runs",
+        "referred_columns": [
+          "id"
+        ],
+        "options": {
+          "onupdate": "RESTRICT",
+          "ondelete": "RESTRICT"
+        }
+      }
+    ],
+    "unique_constraints": [
+      {
+        "name": "uq_weather_location_time",
+        "column_names": [
+          "source",
+          "requested_latitude",
+          "requested_longitude",
+          "weather_time",
+          "interval_seconds"
+        ],
+        "duplicates_index": "uq_weather_location_time"
+      }
+    ],
+    "indexes": [
+      {
+        "name": "idx_weather_run",
+        "column_names": [
+          "collection_run_id"
+        ],
+        "unique": false
+      },
+      {
+        "name": "idx_weather_time",
+        "column_names": [
+          "weather_time"
+        ],
+        "unique": false
+      },
+      {
+        "name": "uq_weather_location_time",
+        "column_names": [
+          "source",
+          "requested_latitude",
+          "requested_longitude",
+          "weather_time",
+          "interval_seconds"
+        ],
+        "unique": true,
+        "type": "UNIQUE"
+      }
+    ]
+  }
+}
