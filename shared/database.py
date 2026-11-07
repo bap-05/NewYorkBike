@@ -58,3 +58,23 @@ def ingestion_session(engine):
             connection.rollback()
             connection.execute(text("SELECT RELEASE_LOCK(:name)"), {"name": lock_name})
             connection.commit()
+
+
+@contextmanager
+def service_session(engine, service_name):
+    """A separate MySQL advisory lock per independent worker, across commits."""
+    if service_name not in ("analysis", "clustering", "prediction"):
+        raise ValueError("Unknown independent service")
+    lock_name = "service_" + service_name + "_" + hashlib.sha256(str(engine.url.database).encode()).hexdigest()[:32]
+    with engine.connect() as connection:
+        acquired = connection.scalar(text("SELECT GET_LOCK(:name, 0)"), {"name": lock_name})
+        connection.commit()
+        if acquired != 1:
+            raise RuntimeError("Another instance of this service holds the database lock")
+        try:
+            with Session(bind=connection, expire_on_commit=False) as session:
+                yield session
+        finally:
+            connection.rollback()
+            connection.execute(text("SELECT RELEASE_LOCK(:name)"), {"name": lock_name})
+            connection.commit()

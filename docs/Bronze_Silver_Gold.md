@@ -130,18 +130,21 @@ from shared.repositories.silver import bike_observations
 rows = session.scalars(bike_observations(source="citibike", available_at=cutoff)).all()
 ```
 
-## Gold: hợp đồng đầu ra cho phần triển khai tiếp theo
+## Gold: Analysis đã có mã, các service khác còn là hợp đồng
 
-Hiện **chưa tạo bảng Gold, chưa tính thống kê/phân cụm/dự đoán**. File data_layers.json
-xác định tên, chủ sở hữu, khóa chống trùng và các trường cần có:
+Đã triển khai Analysis, model/migration `service_runs` và `analysis_results`, xem
+[Data_Analysis.md](Data_Analysis.md). Đã tính trên dữ liệu thật ở chế độ chỉ đọc và
+thử publication trên SQLite in-memory; chưa nâng Aiven hoặc ghi Gold trên Aiven,
+vì cần cập nhật guard collector GitHub trước. Clustering/Prediction/ML vẫn chưa
+triển khai. File data_layers.json mô tả phần đã có mã và phần dự kiến:
 
-| Bảng dự kiến | Service ghi | Nội dung |
+| Bảng | Service ghi | Nội dung |
 |---|---|---|
 | analysis_results | Analysis, 5 phút | Metric theo trạm/cửa sổ, số mẫu, mẫu kỳ vọng và coverage |
 | clustering_runs | Clustering, hằng ngày | Phiên, nguồn, cửa sổ, thuật toán/cấu hình, watermark và trạng thái |
 | station_clusters | Clustering | Thành viên source + station_id theo phiên, nhãn cụm và đặc trưng |
 | predictions | Prediction, 5 phút | input_cutoff_at, issued_at, target_at=t+30 phút, predicted_bikes, model_version_id |
-| service_runs, model_versions, training_jobs | Service/runner tương ứng | Điều phối, truy vết phiên bản và tác vụ, không phải dữ liệu nguồn |
+| service_runs (đã có mã); model_versions, training_jobs (dự kiến) | Service/runner tương ứng | Điều phối, truy vết phiên bản và tác vụ, không phải dữ liệu nguồn |
 
 Quy tắc bắt buộc khi triển khai Gold:
 

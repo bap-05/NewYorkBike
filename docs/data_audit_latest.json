@@ -1,0 +1,312 @@
+{
+  "audited_at_utc": "2026-11-07T13:13:25.531485+00:00",
+  "database_read_only": true,
+  "source": "citibike",
+  "configured_stations": 10,
+  "migration_revision": "0003_bronze",
+  "session_timezone": "+00:00",
+  "tls_encrypted": true,
+  "table_counts_all_sources": {
+    "stations": 10,
+    "collection_runs": 230,
+    "bike_observations": 2295,
+    "weather_observations": 2274,
+    "observation_weather_links": 2294
+  },
+  "citibike_run_statuses": {
+    "success": 228,
+    "partial": 2
+  },
+  "citibike_bike_quality": {
+    "valid": 2294,
+    "inactive": 1
+  },
+  "distinct_linked_weather_rows": 2274,
+  "selected_bike_rows": 2295,
+  "first_sample_new_york": "2026-11-02T11:51:39-05:00",
+  "latest_sample_new_york": "2026-11-07T08:00:34-05:00",
+  "observed_span_days": 4.84,
+  "minutes_since_latest_sample": 12.86,
+  "median_run_interval_minutes": 30.0,
+  "largest_run_gaps": [
+    {
+      "from_new_york": "2026-11-02T11:51:39-05:00",
+      "to_new_york": "2026-11-02T13:12:58-05:00",
+      "minutes": 81.32
+    },
+    {
+      "from_new_york": "2026-11-02T13:12:58-05:00",
+      "to_new_york": "2026-11-02T14:24:19-05:00",
+      "minutes": 71.35
+    },
+    {
+      "from_new_york": "2026-11-04T05:30:32-05:00",
+      "to_new_york": "2026-11-04T06:30:31-05:00",
+      "minutes": 59.98
+    },
+    {
+      "from_new_york": "2026-11-05T10:30:34-05:00",
+      "to_new_york": "2026-11-05T11:30:31-05:00",
+      "minutes": 59.95
+    },
+    {
+      "from_new_york": "2026-11-04T04:30:36-05:00",
+      "to_new_york": "2026-11-04T05:30:32-05:00",
+      "minutes": 59.93
+    }
+  ],
+  "half_hour_buckets_inclusive_span": 234,
+  "occupied_half_hour_buckets": 228,
+  "missing_half_hour_buckets": 6,
+  "missing_bucket_times_new_york": [
+    "2026-11-02T12:00:00-05:00",
+    "2026-11-02T12:30:00-05:00",
+    "2026-11-02T13:30:00-05:00",
+    "2026-11-04T05:00:00-05:00",
+    "2026-11-04T06:00:00-05:00",
+    "2026-11-05T11:00:00-05:00"
+  ],
+  "bucket_caveat": "Any observed sample, including manual runs, fills its UTC half-hour bucket. This measures observed coverage, not proof that a scheduled trigger ran.",
+  "quality_checks": {
+    "null_bike_counts": 0,
+    "negative_bike_counts": 0,
+    "bike_counts_above_current_capacity": 0,
+    "missing_weather_links": 1,
+    "missing_source_timestamp": 0,
+    "source_timestamp_more_than_60s_future": 0,
+    "bike_rows_with_incomplete_weather_fields": 0,
+    "weather_coordinate_mismatches_vs_current_station_metadata": 0,
+    "weather_more_than_max_age_at_sample": 0,
+    "weather_timestamp_more_than_60s_future": 0,
+    "weather_units_mismatch": 0,
+    "invalid_weather_interval": 0
+  },
+  "duplicate_bike_keys": 0,
+  "duplicate_run_keys": 0,
+  "runs_without_bronze_manifest": 0,
+  "partial_runs": [
+    {
+      "id": 52,
+      "sampled_at_new_york": "2026-11-03T13:30:43-05:00",
+      "status": "partial",
+      "success_count": 10,
+      "error_count": 1
+    },
+    {
+      "id": 230,
+      "sampled_at_new_york": "2026-11-07T08:00:34-05:00",
+      "status": "partial",
+      "success_count": 9,
+      "error_count": 1
+    }
+  ],
+  "non_valid_bike_samples": [
+    {
+      "station": "8 Ave & W 49 St",
+      "quality": "inactive",
+      "sampled_at_new_york": "2026-11-07T08:00:34-05:00",
+      "is_installed": true,
+      "is_renting": false,
+      "is_returning": false
+    }
+  ],
+  "candidate_30min_label_pairs_tolerance_5min": 2219,
+  "candidate_pairs_with_complete_current_weather": 2218,
+  "label_caveat": "Nearest eligible future observation within 30 +/-5 minutes, counted for diagnosis only; no training dataset or model was generated. This is not an exact 30-minute label.",
+  "days_new_york": {
+    "2026-11-02": {
+      "runs": 24,
+      "run_statuses": {
+        "success": 24
+      },
+      "bike_rows": 235,
+      "valid_bike_rows": 235
+    },
+    "2026-11-03": {
+      "runs": 48,
+      "run_statuses": {
+        "success": 47,
+        "partial": 1
+      },
+      "bike_rows": 480,
+      "valid_bike_rows": 480
+    },
+    "2026-11-04": {
+      "runs": 46,
+      "run_statuses": {
+        "success": 46
+      },
+      "bike_rows": 460,
+      "valid_bike_rows": 460
+    },
+    "2026-11-05": {
+      "runs": 47,
+      "run_statuses": {
+        "success": 47
+      },
+      "bike_rows": 470,
+      "valid_bike_rows": 470
+    },
+    "2026-11-06": {
+      "runs": 48,
+      "run_statuses": {
+        "success": 48
+      },
+      "bike_rows": 480,
+      "valid_bike_rows": 480
+    },
+    "2026-11-07": {
+      "runs": 17,
+      "run_statuses": {
+        "success": 16,
+        "partial": 1
+      },
+      "bike_rows": 170,
+      "valid_bike_rows": 169
+    }
+  },
+  "stations": [
+    {
+      "station_id": "0096fecb-3a56-4585-9204-aa9554f7bc49",
+      "name": "E 5 St & Ave A",
+      "rows": 230,
+      "quality": {
+        "valid": 230
+      },
+      "first_at_new_york": "2026-11-02T11:51:39-05:00",
+      "last_at_new_york": "2026-11-07T08:00:34-05:00",
+      "bike_min": 0,
+      "bike_max": 47,
+      "gaps_above_45_minutes": 5,
+      "candidate_30min_pairs_with_5min_tolerance": 222
+    },
+    {
+      "station_id": "00d3e65e-b614-4408-aaa9-939ed96ce645",
+      "name": "Perry St & Greenwich Ave",
+      "rows": 230,
+      "quality": {
+        "valid": 230
+      },
+      "first_at_new_york": "2026-11-02T11:51:39-05:00",
+      "last_at_new_york": "2026-11-07T08:00:34-05:00",
+      "bike_min": 1,
+      "bike_max": 51,
+      "gaps_above_45_minutes": 5,
+      "candidate_30min_pairs_with_5min_tolerance": 222
+    },
+    {
+      "station_id": "0138452a-b9f4-4aee-80b0-7fae9a122ffe",
+      "name": "E 54 St & 1 Ave",
+      "rows": 230,
+      "quality": {
+        "valid": 230
+      },
+      "first_at_new_york": "2026-11-02T11:51:39-05:00",
+      "last_at_new_york": "2026-11-07T08:00:34-05:00",
+      "bike_min": 13,
+      "bike_max": 60,
+      "gaps_above_45_minutes": 5,
+      "candidate_30min_pairs_with_5min_tolerance": 222
+    },
+    {
+      "station_id": "014a931b-8e1c-438a-8a22-f267ddd1e0d2",
+      "name": "Peck Slip & South St",
+      "rows": 230,
+      "quality": {
+        "valid": 230
+      },
+      "first_at_new_york": "2026-11-02T11:51:39-05:00",
+      "last_at_new_york": "2026-11-07T08:00:34-05:00",
+      "bike_min": 12,
+      "bike_max": 44,
+      "gaps_above_45_minutes": 5,
+      "candidate_30min_pairs_with_5min_tolerance": 222
+    },
+    {
+      "station_id": "053312f2-e77e-4674-b28b-ad357fbcb4ee",
+      "name": "8 Ave & W 49 St",
+      "rows": 230,
+      "quality": {
+        "valid": 229,
+        "inactive": 1
+      },
+      "first_at_new_york": "2026-11-02T11:51:39-05:00",
+      "last_at_new_york": "2026-11-07T08:00:34-05:00",
+      "bike_min": 0,
+      "bike_max": 56,
+      "gaps_above_45_minutes": 5,
+      "candidate_30min_pairs_with_5min_tolerance": 221
+    },
+    {
+      "station_id": "66de2625-0aca-11e7-82f6-3863bb44ef7c",
+      "name": "Central Park N & Adam Clayton Powell Blvd",
+      "rows": 229,
+      "quality": {
+        "valid": 229
+      },
+      "first_at_new_york": "2026-11-02T13:12:58-05:00",
+      "last_at_new_york": "2026-11-07T08:00:34-05:00",
+      "bike_min": 0,
+      "bike_max": 40,
+      "gaps_above_45_minutes": 4,
+      "candidate_30min_pairs_with_5min_tolerance": 222
+    },
+    {
+      "station_id": "66dccc99-0aca-11e7-82f6-3863bb44ef7c",
+      "name": "Union Ave & Wallabout St",
+      "rows": 229,
+      "quality": {
+        "valid": 229
+      },
+      "first_at_new_york": "2026-11-02T13:12:58-05:00",
+      "last_at_new_york": "2026-11-07T08:00:34-05:00",
+      "bike_min": 15,
+      "bike_max": 30,
+      "gaps_above_45_minutes": 4,
+      "candidate_30min_pairs_with_5min_tolerance": 222
+    },
+    {
+      "station_id": "c3b255d8-b690-4825-b1e9-a1d1680e5542",
+      "name": "Kent St & McGuinness Blvd",
+      "rows": 229,
+      "quality": {
+        "valid": 229
+      },
+      "first_at_new_york": "2026-11-02T13:12:58-05:00",
+      "last_at_new_york": "2026-11-07T08:00:34-05:00",
+      "bike_min": 7,
+      "bike_max": 20,
+      "gaps_above_45_minutes": 4,
+      "candidate_30min_pairs_with_5min_tolerance": 222
+    },
+    {
+      "station_id": "66dd4ec7-0aca-11e7-82f6-3863bb44ef7c",
+      "name": "Riverside Dr & W 82 St",
+      "rows": 229,
+      "quality": {
+        "valid": 229
+      },
+      "first_at_new_york": "2026-11-02T13:12:58-05:00",
+      "last_at_new_york": "2026-11-07T08:00:34-05:00",
+      "bike_min": 1,
+      "bike_max": 56,
+      "gaps_above_45_minutes": 4,
+      "candidate_30min_pairs_with_5min_tolerance": 222
+    },
+    {
+      "station_id": "66dd45c7-0aca-11e7-82f6-3863bb44ef7c",
+      "name": "E 84 St & 1 Ave",
+      "rows": 229,
+      "quality": {
+        "valid": 229
+      },
+      "first_at_new_york": "2026-11-02T13:12:58-05:00",
+      "last_at_new_york": "2026-11-07T08:00:34-05:00",
+      "bike_min": 0,
+      "bike_max": 30,
+      "gaps_above_45_minutes": 4,
+      "candidate_30min_pairs_with_5min_tolerance": 222
+    }
+  ],
+  "bronze_caveat": "Only DB manifest references checked; remote artifact existence and body integrity not verified by this database audit."
+}

@@ -642,3 +642,19 @@ Clustering hằng ngày; mục tiêu dự đoán vẫn +30 phút.
 Các thống kê độ phủ, lag/nhãn và số mẫu kỳ vọng phải theo timestamp/lịch mới: bình
 thường có 48 mốc định kỳ/ngày, chưa tính lần khởi động ngoài mốc và biến đổi DST.
 Không giả định chuỗi vẫn có mẫu mỗi 5 phút hoặc lấy dòng thứ 6 làm nhãn +30 phút.
+
+## 22. Triển khai Analysis — 07/11/2026
+
+- Đã có service `analysis.main` độc lập với collector/API, đọc Silver đã công bố,
+  tính 19 metric theo trạm/giờ/ngày New York; xử lý DST, coverage, inactive, thiếu
+  weather và khoảng mất. Không gọi nguồn ngoài hoặc tự tạo quan sát/dự đoán.
+- Gold gồm service_runs và analysis_results, migration 0004 chỉ thêm bảng mới.
+  Chống trùng theo nguồn/trạm/cửa sổ/metric/version/configuration_hash; công bố
+  Gold cùng marker success trong một transaction. Giữ kết quả cũ nếu lỗi.
+- Có --preview chỉ đọc, --once, --schedule 5 phút, workflow Analysis riêng và mẫu
+  systemd; chưa tự bật lịch. Ingestion vẫn 00/30 theo điều chỉnh ở mục 21.
+- Đã kiểm thử và tính từ dữ liệu Aiven thật; publication thử trên bản sao SQLite
+  in-memory. Chưa nâng Aiven/ghi Gold vì cần push bản guard tương thích của
+  collector GitHub trước. Chi tiết thứ tự trong docs/Data_Analysis.md.
+- React, FastAPI, Clustering, Prediction và ML chưa có; các mô tả cũ về Analysis
+  chưa triển khai là trạng thái lịch sử trước mục cập nhật này.
