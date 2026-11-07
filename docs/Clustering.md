@@ -157,8 +157,10 @@ Preview Aiven ngày 07/11/2026: cửa sổ từ 31/10 00:00 đến 07/11 00:00 g
 đủ độ phủ 7 ngày: kết quả `insufficient_data`, không ghi DB/không tạo thành viên.
 Báo cáo local: `artifacts/clustering_preview.json`.
 
-Migration 0005 chưa áp dụng Aiven trong lần kiểm tra này để chờ mã mới lên GitHub.
-Chưa kiểm tra công bố trên MySQL thật hoặc workflow Clustering trên runner thật;
+Sau khi người dùng xác nhận, mã đã push lên GitHub ở commit `946d597` và migration
+0005 đã áp dụng Aiven thành công ngày 07/11/2026. Đã kiểm tra hai bảng mới tồn tại,
+khóa ngoại đúng và còn trống; cột/số dòng các bảng cũ giữ nguyên tại lúc kiểm tra.
+Chưa chạy phân nhóm ghi kết quả trên MySQL thật hoặc workflow Clustering trên runner thật;
 kiểm thử migration, thuật toán, rollback và chống trùng dùng SQLite độc lập.
 Chưa có Prediction, API hay giao diện phân nhóm. Không tạo số liệu nhóm giả.
 

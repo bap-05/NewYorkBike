@@ -8,7 +8,7 @@
 | Bronze | File gốc dưới BRONZE_DIR, mặc định data/bronze | Ingestion | Đã triển khai |
 | Silver | stations, bike_observations, weather_observations, observation_weather_links | Ingestion | Đã triển khai |
 | Điều phối/truy vết | collection_runs, alembic_version | Ingestion/Alembic | Đã triển khai |
-| Gold | Các bảng thống kê, cụm và dự đoán riêng trong MySQL | Analysis, Clustering, Prediction | Analysis đã chạy; Clustering đã có mã/migration, chưa nâng Aiven; Prediction dự kiến |
+| Gold | Các bảng thống kê, cụm và dự đoán riêng trong MySQL | Analysis, Clustering, Prediction | Analysis đã chạy; bảng Clustering đã tạo Aiven, chưa ghi kết quả; Prediction dự kiến |
 
 Hợp đồng dạng máy đọc: [database/data_layers.json](../database/data_layers.json).
 
@@ -135,7 +135,8 @@ rows = session.scalars(bike_observations(source="citibike", available_at=cutoff)
 Đã triển khai Analysis, model/migration `service_runs` và `analysis_results`, xem
 [Data_Analysis.md](Data_Analysis.md). Người dùng đã xác nhận migration 0004 và
 Analysis thành công trên Aiven/GitHub. Clustering có hai bảng mới ở migration 0005,
-snapshot ngày bất biến, preview thật chưa đủ 7 ngày; chưa áp migration 0005 Aiven.
+snapshot ngày bất biến, preview thật chưa đủ 7 ngày; đã áp migration 0005 Aiven,
+hai bảng Clustering còn trống, chưa chạy phân nhóm ghi kết quả.
 Xem [Clustering.md](Clustering.md). Prediction/huấn luyện dự đoán chưa triển khai.
 File data_layers.json mô tả phần đã có mã và phần dự kiến:
 

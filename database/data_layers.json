@@ -205,7 +205,7 @@
         ],
         "status": "implemented",
         "mysql_migration": "0005_clustering",
-        "deployment_status": "read_only_Aiven_preview_verified_migration_not_applied",
+        "deployment_status": "migration_applied_to_Aiven_empty_tables_no_clustering_publication_yet",
         "publication": "immutable successful daily snapshot; atomic memberships and service completion; insufficient_data has no memberships"
       },
       "station_clusters": {
@@ -222,7 +222,7 @@
         ],
         "status": "implemented",
         "mysql_migration": "0005_clustering",
-        "deployment_status": "read_only_Aiven_preview_verified_migration_not_applied"
+        "deployment_status": "migration_applied_to_Aiven_empty_tables_no_clustering_publication_yet"
       }
     },
     "read_contract_module": "shared.repositories.gold",
