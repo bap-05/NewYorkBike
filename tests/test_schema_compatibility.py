@@ -10,6 +10,10 @@ from shared.models import Base, Station, BikeObservation, CollectionRun, Weather
     ("0004_analysis","0003_bronze",True),
     ("0003_bronze","0004_analysis",False),
     ("0004_analysis","0004_analysis",True),
+    ("0005_clustering","0003_bronze",True),
+    ("0005_clustering","0004_analysis",True),
+    ("0005_clustering","0005_clustering",True),
+    ("0004_analysis","0005_clustering",False),
     ("0002_citibike","0003_bronze",False),
 ])
 def test_service_requires_its_own_minimum_revision(monkeypatch,revision,required,allowed):

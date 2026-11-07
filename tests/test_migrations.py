@@ -88,7 +88,7 @@ def test_analysis_migration_adds_gold_without_changing_silver():
         with Operations.context(context):
             analysis_migration().upgrade()
         inspector = inspect(connection)
-        assert set(inspector.get_table_names()) == set(Base.metadata.tables)
+        assert set(inspector.get_table_names()) == set(Base.metadata.tables) - {"clustering_runs", "station_clusters"}
         for table, columns in before.items():
             assert [c['name'] for c in inspector.get_columns(table)] == columns
         assert connection.scalar(text("SELECT COUNT(*) FROM stations")) == 1
@@ -105,3 +105,43 @@ def test_analysis_schema_compiles_for_mysql_with_primary_keys_and_source_fks():
     assert "FOREIGN KEY(source, station_id)" in sql
     assert "FOREIGN KEY(source, service_run_id)" in sql
     assert "DROP" not in sql and "ALTER" not in sql
+
+
+def clustering_migration():
+    path = Path(__file__).resolve().parents[1] / "database/migrations/versions/0005_clustering.py"
+    spec = importlib.util.spec_from_file_location("clustering_schema", path)
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    return module
+
+
+def test_clustering_migration_preserves_all_existing_rows_and_columns():
+    from sqlalchemy import text
+    engine = create_engine("sqlite://")
+    with engine.begin() as connection:
+        context = MigrationContext.configure(connection)
+        with Operations.context(context):
+            migration().upgrade()
+            analysis_migration().upgrade()
+        connection.execute(text("INSERT INTO stations (station_id,name,latitude,longitude,is_monitored,updated_at) VALUES ('test-only','Preserve',40,-74,1,'2026-01-01')"))
+        before = {t: [c['name'] for c in inspect(connection).get_columns(t)] for t in inspect(connection).get_table_names()}
+        with Operations.context(context):
+            clustering_migration().upgrade()
+        assert set(inspect(connection).get_table_names()) == set(Base.metadata.tables)
+        for table, columns in before.items():
+            assert [c['name'] for c in inspect(connection).get_columns(table)] == columns
+        assert connection.scalar(text("SELECT name FROM stations")) == "Preserve"
+
+
+def test_clustering_migration_mysql_compiles_additively():
+    output = StringIO()
+    context = MigrationContext.configure(dialect_name="mysql", opts={"as_sql": True, "output_buffer": output})
+    with Operations.context(context):
+        clustering_migration().upgrade()
+    sql = output.getvalue()
+    assert sql.count("CREATE TABLE") == 2 and sql.count("PRIMARY KEY") == 2
+    assert "FOREIGN KEY(source, station_id)" in sql
+    assert "FOREIGN KEY(source, clustering_run_id)" in sql
+    assert "FOREIGN KEY(source, service_run_id)" in sql
+    assert "DATETIME(6)" in sql and "utf8mb4_bin" in sql
+    assert not any(word in sql for word in ("DROP", "ALTER", "TRUNCATE"))
