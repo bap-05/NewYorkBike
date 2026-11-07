@@ -658,3 +658,24 @@ Không giả định chuỗi vẫn có mẫu mỗi 5 phút hoặc lấy dòng th
   collector GitHub trước. Chi tiết thứ tự trong docs/Data_Analysis.md.
 - React, FastAPI, Clustering, Prediction và ML chưa có; các mô tả cũ về Analysis
   chưa triển khai là trạng thái lịch sử trước mục cập nhật này.
+
+## 23. Triển khai Clustering — 07/11/2026
+
+- Service `clustering.main` độc lập: đọc Silver, không gọi API, không chạy lồng
+  trong Analysis/Ingestion. Có `--preview`, `--once`, `--schedule` hằng ngày NY.
+- Cửa sổ mặc định 7 ngày New York đã hoàn tất. Nhịp dữ liệu vẫn 30 phút; độ phủ
+  tính đúng ngày 23/25 giờ. Không dùng inactive/stale/NULL hay lấp dữ liệu mất.
+- Chuẩn hóa 9 đặc trưng xe/sức chứa/khung giờ bằng StandardScaler; K-means thử
+  nhiều k, chọn silhouette cao nhất, không nhóm đơn lẻ, không mặc định 3 nhóm.
+  Lưu scaler, tâm cụm, cấu hình và profile 24 giờ để giải thích.
+- Migration `0005_clustering` chỉ thêm clustering_runs và station_clusters;
+  source + station_id được giữ trong quan hệ. Công bố snapshot và marker success
+  cùng transaction; cùng ngày/version/cấu hình không nhân đôi kết quả thành công.
+- Cần ít nhất 6 trạm đủ mẫu, từng ngày >=80% và >=200 mẫu/trạm; không đủ báo
+  insufficient_data, không gán nhóm giả. Capacity dùng snapshot metadata hiện tại,
+  chưa tái dựng lịch sử từ Bronze; không thay rack_count bằng capacity.
+- Preview Aiven thực tế 07/11 có 2.125 mẫu trong cửa sổ, 10 trạm, chưa trạm nào đủ
+  7 ngày. Chưa áp migration 0005 hoặc chạy lịch Clustering trên GitHub. Push mã
+  mới trước nâng schema để collector/Analysis đang chạy nhận revision mới.
+- Analysis đã được người dùng xác nhận chạy thật Aiven/GitHub. React, FastAPI,
+  Prediction và huấn luyện dự đoán vẫn chưa có. Chi tiết: docs/Clustering.md.

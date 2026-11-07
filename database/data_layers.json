@@ -1,5 +1,5 @@
 {
-  "contract_version": "1.1",
+  "contract_version": "1.2",
   "default_bike_source": "citibike",
   "storage_timezone": "UTC",
   "display_timezone": "America/New_York",
@@ -89,40 +89,10 @@
     ]
   },
   "gold": {
-    "status": "analysis_implemented_other_workers_planned",
-    "storage": "planned tables in existing MySQL database, separate from Silver tables",
+    "status": "analysis_and_clustering_implemented_prediction_planned",
+    "storage": "existing MySQL database; additive Gold tables separate from Silver",
     "input": "completed Silver runs and usable observations; no API calls from Gold workers",
     "planned_tables": {
-      "clustering_runs": {
-        "owner": "clustering",
-        "cadence": "once per New York calendar day",
-        "identity": [
-          "id"
-        ],
-        "required_fields": [
-          "source",
-          "window_start",
-          "window_end",
-          "algorithm",
-          "feature_config",
-          "parameters",
-          "status",
-          "service_run_id"
-        ]
-      },
-      "station_clusters": {
-        "owner": "clustering",
-        "identity": [
-          "clustering_run_id",
-          "source",
-          "station_id"
-        ],
-        "required_fields": [
-          "cluster_label",
-          "feature_values",
-          "sample_count"
-        ]
-      },
       "predictions": {
         "owner": "prediction",
         "cadence_seconds": 300,
@@ -159,7 +129,7 @@
         "owner": "analysis",
         "cadence_seconds": 300,
         "mysql_migration": "0004_analysis",
-        "deployment_status": "code_tested_not_applied_to_Aiven",
+        "deployment_status": "user_confirmed_Aiven_and_GitHub_success",
         "identity": [
           "source",
           "station_id",
@@ -191,7 +161,10 @@
       },
       "service_runs": {
         "owner": "independent_workers",
-        "implemented_owner": "analysis",
+        "implemented_owner": [
+          "analysis",
+          "clustering"
+        ],
         "identity": [
           "service_name",
           "source",
@@ -210,6 +183,46 @@
           "summary",
           "result_count"
         ]
+      },
+      "clustering_runs": {
+        "owner": "clustering",
+        "cadence": "once per New York calendar day",
+        "identity": [
+          "source",
+          "run_date",
+          "calculation_version",
+          "configuration_hash"
+        ],
+        "required_fields": [
+          "source",
+          "window_start",
+          "window_end",
+          "algorithm",
+          "feature_config",
+          "parameters",
+          "status",
+          "service_run_id"
+        ],
+        "status": "implemented",
+        "mysql_migration": "0005_clustering",
+        "deployment_status": "read_only_Aiven_preview_verified_migration_not_applied",
+        "publication": "immutable successful daily snapshot; atomic memberships and service completion; insufficient_data has no memberships"
+      },
+      "station_clusters": {
+        "owner": "clustering",
+        "identity": [
+          "clustering_run_id",
+          "source",
+          "station_id"
+        ],
+        "required_fields": [
+          "cluster_label",
+          "feature_values",
+          "sample_count"
+        ],
+        "status": "implemented",
+        "mysql_migration": "0005_clustering",
+        "deployment_status": "read_only_Aiven_preview_verified_migration_not_applied"
       }
     },
     "read_contract_module": "shared.repositories.gold",
@@ -219,6 +232,19 @@
       "timezone": "America/New_York",
       "default_lookback_local_calendar_days": 7,
       "cadence_note": "Expected collection cadence remains separate from worker cadence; historical cadence changes require an explicit policy."
+    },
+    "clustering_configuration": {
+      "timezone": "America/New_York",
+      "completed_local_calendar_days": 7,
+      "expected_collection_interval_seconds": 1800,
+      "min_samples": 200,
+      "min_daily_coverage": 0.8,
+      "min_eligible_stations": 6,
+      "max_candidate_clusters": 4,
+      "algorithm": "StandardScaler+KMeans; silhouette selection; no singleton groups",
+      "capacity_policy": "current metadata snapshot; not historical capacity reconstruction",
+      "missing_weather_policy": "not used by clustering v1",
+      "version": "clustering-v1"
     }
   }
 }

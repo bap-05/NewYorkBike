@@ -1,0 +1,42 @@
+{
+  "checked_at_local_date": "2026-11-07",
+  "mode": "read-only Aiven transaction",
+  "database_written": false,
+  "migration_applied": false,
+  "github_workflow_executed": false,
+  "status": "insufficient_data",
+  "reason": "too_few_eligible_stations",
+  "configuration": {
+    "window_days": 7,
+    "expected_interval_seconds": 1800,
+    "min_samples": 200,
+    "min_daily_coverage": 0.8,
+    "min_stations": 6,
+    "max_clusters": 4,
+    "low_bike_threshold": 3,
+    "timezone_name": "America/New_York"
+  },
+  "summary": {
+    "run_date": "2026-11-07",
+    "window_start": "2026-10-31T04:00:00+00:00",
+    "window_end": "2026-11-07T05:00:00+00:00",
+    "input_cutoff": "2026-11-07T05:00:00+00:00",
+    "input_watermark": "2026-11-07 04:30:40.974307+00:00",
+    "input_rows": 2125,
+    "station_count": 10,
+    "eligible_stations": 0,
+    "minimum_stations": 6,
+    "expected_samples_per_station": 338
+  },
+  "rejection_reason_counts": {
+    "incomplete_daily_coverage": 10
+  },
+  "verification": {
+    "pytest_passed": 176,
+    "actionlint": "passed",
+    "mysql_migration": "offline compilation only, not applied",
+    "sqlite_migration": "passed additive preservation test",
+    "mysql_publication": "not tested",
+    "scheduled_background_service_started": false
+  }
+}
