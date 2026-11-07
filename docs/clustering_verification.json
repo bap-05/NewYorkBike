@@ -2,7 +2,7 @@
   "checked_at_local_date": "2026-11-07",
   "mode": "read-only Aiven transaction",
   "database_written": false,
-  "migration_applied": false,
+  "migration_applied": true,
   "github_workflow_executed": false,
   "status": "insufficient_data",
   "reason": "too_few_eligible_stations",
@@ -34,9 +34,39 @@
   "verification": {
     "pytest_passed": 176,
     "actionlint": "passed",
-    "mysql_migration": "offline compilation only, not applied",
+    "mysql_migration": "applied to Aiven; table columns, keys and preserved row counts verified",
     "sqlite_migration": "passed additive preservation test",
     "mysql_publication": "not tested",
     "scheduled_background_service_started": false
-  }
+  },
+  "migration_verification": {
+    "checked_at_utc": "2026-11-07T15:11:43.297315+00:00",
+    "revision": "0005_clustering",
+    "new_tables": {
+      "clustering_runs": 0,
+      "station_clusters": 0
+    },
+    "existing_columns_unchanged": true,
+    "before_counts": {
+      "stations": 10,
+      "collection_runs": 234,
+      "bike_observations": 2335,
+      "weather_observations": 2314,
+      "observation_weather_links": 2334,
+      "analysis_results": 23750,
+      "service_runs": 9
+    },
+    "after_counts": {
+      "stations": 10,
+      "collection_runs": 234,
+      "bike_observations": 2335,
+      "weather_observations": 2314,
+      "observation_weather_links": 2334,
+      "analysis_results": 23750,
+      "service_runs": 9
+    },
+    "collector_or_analysis_executed": false,
+    "clustering_executed": false
+  },
+  "implementation_commit": "946d597"
 }

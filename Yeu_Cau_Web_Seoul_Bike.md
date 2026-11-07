@@ -679,3 +679,8 @@ Không giả định chuỗi vẫn có mẫu mỗi 5 phút hoặc lấy dòng th
   mới trước nâng schema để collector/Analysis đang chạy nhận revision mới.
 - Analysis đã được người dùng xác nhận chạy thật Aiven/GitHub. React, FastAPI,
   Prediction và huấn luyện dự đoán vẫn chưa có. Chi tiết: docs/Clustering.md.
+
+Cập nhật sau xác nhận triển khai ngày 07/11/2026: đã push mã Clustering lên GitHub
+(`946d597`), áp migration `0005_clustering` trên Aiven và xác minh hai bảng mới,
+khóa ngoại và dữ liệu cũ được giữ nguyên. Hai bảng còn trống; chưa chạy phân nhóm
+ghi kết quả hoặc bật lịch. Kiểm tra tương thích schema Collector/Analysis đã qua.

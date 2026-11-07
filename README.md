@@ -11,7 +11,7 @@ app FastAPI, Prediction hoặc huấn luyện dự đoán; không có kết qu�
 Đã thêm **Bronze** lưu body API gốc và manifest mỗi lần thu thập. Các bảng quan sát
 MySQL hiện có là **Silver**. **Gold Analysis** đã có model, migration 0004, bộ tính
 thống kê và repository công bố; người dùng đã chạy thành công trên Aiven/GitHub.
-**Gold Clustering** đã có mã và migration 0005, chưa áp dụng Aiven; xem
+**Gold Clustering** đã có mã và migration 0005 đã áp dụng Aiven, hai bảng còn trống; xem
 [hướng dẫn Clustering](docs/Clustering.md). Prediction vẫn là hợp đồng.
 Chi tiết: [Bronze/Silver/Gold](docs/Bronze_Silver_Gold.md)
 và [hợp đồng dữ liệu](database/data_layers.json).
