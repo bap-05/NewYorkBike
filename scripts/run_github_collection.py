@@ -4,13 +4,10 @@ import os
 from pathlib import Path
 import tempfile
 
-from alembic.config import Config
-from alembic.migration import MigrationContext
-from alembic.script import ScriptDirectory
-
 from ingestion.main import run
 from shared.config import ROOT, Settings
-from shared.database import make_engine
+from shared.models import Station, CollectionRun, BikeObservation, WeatherObservation, ObservationWeatherLink
+from shared.schema import check_schema
 from shared.logging_config import configure_logging
 from shared.time import utcnow
 
@@ -32,16 +29,9 @@ def station_ids():
 
 
 def check_migration(settings):
-    """Only inspect the ledger. CI never changes schema or stamps a database."""
-    engine = make_engine(settings)
-    try:
-        with engine.connect() as connection:
-            expected = set(ScriptDirectory.from_config(Config(str(ROOT / "alembic.ini"))).get_heads())
-            actual = set(MigrationContext.configure(connection).get_current_heads())
-            if actual != expected:
-                raise ValueError("Database migration is not at head; run migrations manually first")
-    finally:
-        engine.dispose()
+    """Accept 0003 and known additive upgrades, without requiring Gold to exist."""
+    check_schema(settings, required_revision="0003_bronze",
+                 models=(Station, CollectionRun, BikeObservation, WeatherObservation, ObservationWeatherLink))
 
 
 def main():

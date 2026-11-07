@@ -1,5 +1,5 @@
 {
-  "contract_version": "1.0",
+  "contract_version": "1.1",
   "default_bike_source": "citibike",
   "storage_timezone": "UTC",
   "display_timezone": "America/New_York",
@@ -15,7 +15,12 @@
     "storage": "BRONZE_DIR filesystem, default data/bronze",
     "manifest_format": "bronze-v1",
     "body_format": "exact HTTPX decoded response bytes, before JSON parsing",
-    "manifest_identity": ["source", "collection_run_id", "collection_attempt", "unique_attempt_directory"],
+    "manifest_identity": [
+      "source",
+      "collection_run_id",
+      "collection_attempt",
+      "unique_attempt_directory"
+    ],
     "silver_reference": "collection_runs.bronze_manifest_path (relative to BRONZE_DIR)",
     "publication_authority": "MySQL collection_runs status and finished_at; filesystem completion alone is insufficient",
     "retention": "retain all local raw; no automatic local deletion",
@@ -33,45 +38,187 @@
     "owner": "ingestion",
     "storage": "existing MySQL database; no table rename",
     "tables": {
-      "stations": {"role": "current station metadata", "identity": ["source", "station_id"]},
-      "bike_observations": {"role": "normalized source observations", "identity": ["source", "station_id", "sampled_at"]},
-      "weather_observations": {"role": "normalized weather with original units and interval", "identity": ["requested_latitude", "requested_longitude", "weather_time", "source"]},
-      "observation_weather_links": {"role": "chosen weather per bike observation", "identity": ["bike_observation_id"]}
+      "stations": {
+        "role": "current station metadata",
+        "identity": [
+          "source",
+          "station_id"
+        ]
+      },
+      "bike_observations": {
+        "role": "normalized source observations",
+        "identity": [
+          "source",
+          "station_id",
+          "sampled_at"
+        ]
+      },
+      "weather_observations": {
+        "role": "normalized weather with original units and interval",
+        "identity": [
+          "requested_latitude",
+          "requested_longitude",
+          "weather_time",
+          "source"
+        ]
+      },
+      "observation_weather_links": {
+        "role": "chosen weather per bike observation",
+        "identity": [
+          "bike_observation_id"
+        ]
+      }
     },
-    "control_tables": ["collection_runs", "alembic_version"],
-    "published_runs": ["success", "partial"],
+    "control_tables": [
+      "collection_runs",
+      "alembic_version"
+    ],
+    "published_runs": [
+      "success",
+      "partial"
+    ],
     "require_finished_at": true,
     "gold_default_quality": "valid",
     "read_contract_module": "shared.repositories.silver",
-    "rules": ["preserve missing as NULL", "isolate source identities", "exclude inactive and stale from normal availability metrics", "never relabel legacy units", "metadata is mutable; historical metadata reconstruction uses Bronze"]
+    "rules": [
+      "preserve missing as NULL",
+      "isolate source identities",
+      "exclude inactive and stale from normal availability metrics",
+      "never relabel legacy units",
+      "metadata is mutable; historical metadata reconstruction uses Bronze"
+    ]
   },
   "gold": {
-    "status": "contract_only_not_implemented",
+    "status": "analysis_implemented_other_workers_planned",
     "storage": "planned tables in existing MySQL database, separate from Silver tables",
     "input": "completed Silver runs and usable observations; no API calls from Gold workers",
     "planned_tables": {
-      "analysis_results": {
-        "owner": "analysis", "cadence_seconds": 300,
-        "identity": ["source", "station_id", "window_start", "window_end", "metric_name", "calculation_version"],
-        "required_fields": ["metric_value", "sample_count", "expected_sample_count", "coverage", "service_run_id"]
-      },
       "clustering_runs": {
-        "owner": "clustering", "cadence": "once per New York calendar day",
-        "identity": ["id"],
-        "required_fields": ["source", "window_start", "window_end", "algorithm", "feature_config", "parameters", "status", "service_run_id"]
+        "owner": "clustering",
+        "cadence": "once per New York calendar day",
+        "identity": [
+          "id"
+        ],
+        "required_fields": [
+          "source",
+          "window_start",
+          "window_end",
+          "algorithm",
+          "feature_config",
+          "parameters",
+          "status",
+          "service_run_id"
+        ]
       },
       "station_clusters": {
-        "owner": "clustering", "identity": ["clustering_run_id", "source", "station_id"],
-        "required_fields": ["cluster_label", "feature_values", "sample_count"]
+        "owner": "clustering",
+        "identity": [
+          "clustering_run_id",
+          "source",
+          "station_id"
+        ],
+        "required_fields": [
+          "cluster_label",
+          "feature_values",
+          "sample_count"
+        ]
       },
       "predictions": {
-        "owner": "prediction", "cadence_seconds": 300,
-        "identity": ["source", "station_id", "input_cutoff_at", "target_at", "model_version_id"],
-        "required_fields": ["issued_at", "predicted_bikes", "status", "service_run_id"],
+        "owner": "prediction",
+        "cadence_seconds": 300,
+        "identity": [
+          "source",
+          "station_id",
+          "input_cutoff_at",
+          "target_at",
+          "model_version_id"
+        ],
+        "required_fields": [
+          "issued_at",
+          "predicted_bikes",
+          "status",
+          "service_run_id"
+        ],
         "horizon_minutes": 30
       }
     },
-    "planned_control_tables": ["service_runs", "model_versions", "training_jobs"],
-    "rules": ["publish only completed worker results", "retain prior successful versions", "features must be known by input cutoff", "store UTC window bounds and use New York timezone for local calendar features", "report sample_count and coverage", "insufficient data produces a status, not fabricated metrics or predictions"]
+    "planned_control_tables": [
+      "model_versions",
+      "training_jobs"
+    ],
+    "rules": [
+      "publish only completed worker results",
+      "retain prior successful versions",
+      "features must be known by input cutoff",
+      "store UTC window bounds and use New York timezone for local calendar features",
+      "report sample_count and coverage",
+      "insufficient data produces a status, not fabricated metrics or predictions"
+    ],
+    "implemented_tables": {
+      "analysis_results": {
+        "owner": "analysis",
+        "cadence_seconds": 300,
+        "mysql_migration": "0004_analysis",
+        "deployment_status": "code_tested_not_applied_to_Aiven",
+        "identity": [
+          "source",
+          "station_id",
+          "window_start",
+          "window_end",
+          "aggregation",
+          "metric_name",
+          "calculation_version",
+          "configuration_hash"
+        ],
+        "aggregation": [
+          "hour",
+          "day"
+        ],
+        "required_fields": [
+          "metric_value",
+          "sample_count",
+          "observed_sample_count",
+          "expected_sample_count",
+          "coverage",
+          "quality_status",
+          "dimensions",
+          "input_cutoff",
+          "input_watermark",
+          "service_run_id"
+        ],
+        "publication": "atomic upsert of changed materialized metrics and service_run completion; only completed success runs are published",
+        "history": "current materialized value per key, not immutable point-in-time snapshots; no automatic deletion"
+      },
+      "service_runs": {
+        "owner": "independent_workers",
+        "implemented_owner": "analysis",
+        "identity": [
+          "service_name",
+          "source",
+          "scheduled_at",
+          "calculation_version",
+          "configuration_hash"
+        ],
+        "required_fields": [
+          "started_at",
+          "finished_at",
+          "heartbeat_at",
+          "input_watermark",
+          "status",
+          "attempt_count",
+          "configuration",
+          "summary",
+          "result_count"
+        ]
+      }
+    },
+    "read_contract_module": "shared.repositories.gold",
+    "analysis_configuration": {
+      "expected_collection_interval_seconds": 1800,
+      "worker_interval_seconds": 300,
+      "timezone": "America/New_York",
+      "default_lookback_local_calendar_days": 7,
+      "cadence_note": "Expected collection cadence remains separate from worker cadence; historical cadence changes require an explicit policy."
+    }
   }
 }

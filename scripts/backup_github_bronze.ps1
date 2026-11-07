@@ -2,10 +2,24 @@ param(
     [Parameter(Mandatory = $true)]
     [ValidatePattern('^[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+$')]
     [string]$Repository,
-    [string]$Destination = (Join-Path $PSScriptRoot '..\backups\bronze')
+    [string]$Destination = ''
 )
 
 $ErrorActionPreference = 'Stop'
+# Resolve defaults in the script body: Windows PowerShell may not populate
+# $PSScriptRoot while evaluating default parameter expressions.
+if ([string]::IsNullOrWhiteSpace($Destination)) {
+    $ScriptDirectory = $PSScriptRoot
+    if ([string]::IsNullOrWhiteSpace($ScriptDirectory)) {
+        $ScriptFile = $MyInvocation.MyCommand.Path
+        if ([string]::IsNullOrWhiteSpace($ScriptFile)) {
+            throw 'Cannot locate this script. Run it using powershell -File or supply -Destination explicitly.'
+        }
+        $ScriptDirectory = Split-Path -Parent $ScriptFile
+    }
+    $ProjectDirectory = Split-Path -Parent $ScriptDirectory
+    $Destination = Join-Path -Path $ProjectDirectory -ChildPath 'backups\bronze'
+}
 Get-Command gh -ErrorAction Stop | Out-Null
 $BackupRoot = [System.IO.Path]::GetFullPath($Destination)
 New-Item -ItemType Directory -Force -Path $BackupRoot | Out-Null

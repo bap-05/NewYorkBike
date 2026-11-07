@@ -1,16 +1,17 @@
-# Citi Bike New York — database và ingestion
+# Citi Bike New York — database, ingestion và analysis
 
 **Tên đề tài:** Dự đoán số xe đạp công cộng có thể thuê tại các trạm Citi Bike ở New York trong 30 phút tới dựa trên thời tiết và thời gian.
 
 Giữ kiến trúc React + FastAPI + MySQL. Ingestion, Analysis, Clustering, Prediction
 là các tiến trình riêng: Ingestion chạy ngay khi khởi động rồi tại phút 00/30 theo
-giờ New York; Analysis/Prediction dự kiến 5 phút, Clustering hằng ngày.
-Hiện chỉ database và ingestion đã được triển khai. Workspace chưa có React, app
-FastAPI, Analysis, Clustering, Prediction hoặc huấn luyện; không có kết quả dự đoán giả.
+giờ New York; Analysis chạy riêng mỗi 5 phút, Prediction dự kiến 5 phút và Clustering
+hằng ngày. Đã có mã database, ingestion và Analysis. Chưa có React, app FastAPI,
+Clustering, Prediction hoặc huấn luyện; không có kết quả dự đoán giả.
 
 Đã thêm **Bronze** lưu body API gốc và manifest mỗi lần thu thập. Các bảng quan sát
-MySQL hiện có là **Silver**. **Gold** mới có hợp đồng đầu ra cho các service xử lý,
-chưa có bảng/kết quả tính toán. Chi tiết: [Bronze/Silver/Gold](docs/Bronze_Silver_Gold.md)
+MySQL hiện có là **Silver**. **Gold Analysis** đã có model, migration 0004, bộ tính
+thống kê và repository công bố; chưa áp migration/ghi Gold lên Aiven. Các khối Gold
+khác vẫn là hợp đồng. Chi tiết: [Bronze/Silver/Gold](docs/Bronze_Silver_Gold.md)
 và [hợp đồng dữ liệu](database/data_layers.json).
 
 Đặc tả: [docs/Yeu_Cau_Web_Seoul_Bike.md](docs/Yeu_Cau_Web_Seoul_Bike.md).
@@ -211,6 +212,37 @@ Thay đổi chu kỳ ingestion không đổi mục tiêu dự đoán +30 phút h
 Ngày 02/11/2026 đã kiểm tra và nâng schema của database đang cấu hình `newyorkbike`
 từ layout legacy lên 0003_bronze; cả 5 bảng nghiệp vụ vẫn trống. Không đổi tên database,
 không xóa dữ liệu và chưa chạy collector thật trên database mới trong lần sửa lịch này.
+
+## Data Analysis độc lập
+
+Đọc [hướng dẫn Analysis và thứ tự triển khai an toàn](docs/Data_Analysis.md).
+Xem trước trên dữ liệu thật, không ghi Aiven:
+
+```powershell
+.\.venv\Scripts\python -m analysis.main --preview
+```
+
+JSON được lưu vào `artifacts/analysis_preview.json`. **Push mã mới của collector
+và shared/schema.py trước khi nâng database**: collector GitHub cũ yêu cầu đúng
+0003 và sẽ từ chối 0004. Bản mới chấp nhận schema tối thiểu 0003 cùng nâng cấp cộng
+thêm đã biết, trong khi Analysis yêu cầu 0004. Sau khi xác nhận GitHub có mã mới:
+
+```powershell
+.\.venv\Scripts\python -m alembic upgrade head
+.\.venv\Scripts\python -m analysis.main --once
+```
+
+Chỉ khi chạy một lần thành công mới dùng `python -m analysis.main --schedule`
+trong terminal riêng, hoặc bật workflow `Citi Bike analysis`/cron-job.org riêng.
+Lịch Analysis mặc định chưa bật; không đổi collector 00/30. Không gọi lại API từ
+Analysis, không điền thiếu bằng 0, không đọc ingestion đang ghi dở. Gold là thống
+kê materialized theo giờ/ngày New York, có số mẫu, coverage và quality; cửa sổ
+chưa đủ dữ liệu được gắn nhãn. Không tạo dự đoán hoặc cụm giả.
+
+Đã có 153 tests đạt; preview tính 23.370 metric từ 2.305 quan sát thật. Publication
+được thử trên bản sao SQLite in-memory, trung bình của 10 trạm khớp MySQL độc lập;
+chưa thử ghi Gold trên Aiven hoặc chạy workflow Analysis thật. Xem
+[bằng chứng Analysis](docs/analysis_verification.json).
 
 ## Kiểm thử
 

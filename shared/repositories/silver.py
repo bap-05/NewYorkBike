@@ -8,7 +8,7 @@ from shared.time import as_utc
 def bike_observations(*, source="citibike", available_at=None, include_unusable=False):
     """Return a composable SELECT. Gold keeps the default valid-only policy."""
     query = select(BikeObservation).join(CollectionRun, CollectionRun.id == BikeObservation.collection_run_id).where(
-        BikeObservation.source == source,
+        BikeObservation.source == source, CollectionRun.source == source,
         CollectionRun.status.in_(("success", "partial")), CollectionRun.finished_at.is_not(None))
     if not include_unusable:
         query = query.where(BikeObservation.quality_status == "valid", BikeObservation.available_bikes.is_not(None),

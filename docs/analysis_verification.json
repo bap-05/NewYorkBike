@@ -1,0 +1,93 @@
+{
+  "checked_at_utc": "2026-11-07T13:54:46.476887+00:00",
+  "aiven_revision": "0003_bronze",
+  "aiven_written": false,
+  "method": "READ ONLY real Silver snapshot; Gold published in isolated in-memory SQLite; daily means cross-checked with independent Aiven MySQL SQL window query",
+  "copied_silver_rows": {
+    "stations": 10,
+    "collection_runs": 231,
+    "bike_observations": 2305,
+    "weather_observations": 2284,
+    "observation_weather_links": 2304
+  },
+  "analysis_run_status_in_memory": "success",
+  "gold_rows_in_memory": 23370,
+  "summary": {
+    "input_rows": 2305,
+    "station_count": 10,
+    "generated_metrics": 23370,
+    "quality_counts": {
+      "insufficient_data": 4417,
+      "low_coverage": 49,
+      "ok": 18904
+    },
+    "missing_metadata_station_ids": [],
+    "stations_without_published_history": [],
+    "window_start_utc": "2026-11-01T04:00:00+00:00",
+    "input_cutoff_utc": "2026-11-07T13:50:00+00:00",
+    "changed_metrics": 23370,
+    "skip_reason": null
+  },
+  "same_period_idempotency_verified": true,
+  "comparison_day_new_york": "2026-11-06",
+  "daily_means_match_independent_mysql_query": [
+    {
+      "station": "E 5 St & Ave A",
+      "mean_bikes": 31.833333333333332,
+      "samples": 48
+    },
+    {
+      "station": "Perry St & Greenwich Ave",
+      "mean_bikes": 30.979166666666668,
+      "samples": 48
+    },
+    {
+      "station": "E 54 St & 1 Ave",
+      "mean_bikes": 36.770833333333336,
+      "samples": 48
+    },
+    {
+      "station": "Peck Slip & South St",
+      "mean_bikes": 37.5,
+      "samples": 48
+    },
+    {
+      "station": "8 Ave & W 49 St",
+      "mean_bikes": 10.520833333333334,
+      "samples": 48
+    },
+    {
+      "station": "Union Ave & Wallabout St",
+      "mean_bikes": 27.1875,
+      "samples": 48
+    },
+    {
+      "station": "E 84 St & 1 Ave",
+      "mean_bikes": 22.625,
+      "samples": 48
+    },
+    {
+      "station": "Riverside Dr & W 82 St",
+      "mean_bikes": 32.854166666666664,
+      "samples": 48
+    },
+    {
+      "station": "Central Park N & Adam Clayton Powell Blvd",
+      "mean_bikes": 28.354166666666668,
+      "samples": 48
+    },
+    {
+      "station": "Kent St & McGuinness Blvd",
+      "mean_bikes": 15.895833333333334,
+      "samples": 48
+    }
+  ],
+  "mysql_gold_migration_applied": false,
+  "mysql_gold_upsert_runtime_tested": false,
+  "background_scheduler_started": false,
+  "github_workflow_executed": false,
+  "unit_tests_passed": 153,
+  "new_ingestion_schema_guard_verified_on_existing_aiven_0003": true,
+  "analysis_workflow_actionlint_passed": true,
+  "rollout_order": "Push compatible ingestion guard first; confirm deployed collector; apply 0004; run Analysis once; only then enable independent schedule."
+}

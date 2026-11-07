@@ -74,9 +74,9 @@ class Settings:
     mysql_ssl_ca: Path | None = None
 
     @classmethod
-    def load(cls) -> "Settings":
+    def load(cls, *, outbound=True) -> "Settings":
         load_dotenv(ROOT / ".env", override=False)
-        proxy_enabled, proxy_urls = proxy_config()
+        proxy_enabled, proxy_urls = proxy_config() if outbound else (False, ())
         settings = cls(
             mysql_host=os.getenv("MYSQL_HOST", "127.0.0.1"),
             mysql_port=integer("MYSQL_PORT", 3306, 1, 65535),
@@ -99,7 +99,7 @@ class Settings:
             proxy_urls=proxy_urls,
             bronze_dir=(ROOT / os.getenv("BRONZE_DIR", "data/bronze")).resolve(),
         )
-        for name, url in (("GBFS_DISCOVERY_URL", settings.gbfs_discovery_url), ("OPEN_METEO_URL", settings.weather_url)):
+        for name, url in ((("GBFS_DISCOVERY_URL", settings.gbfs_discovery_url), ("OPEN_METEO_URL", settings.weather_url)) if outbound else ()):
             parsed = urlsplit(url)
             if parsed.scheme not in ("http", "https") or not parsed.hostname or parsed.username or parsed.password or parsed.query or parsed.fragment:
                 raise ValueError(f"Invalid {name}")
