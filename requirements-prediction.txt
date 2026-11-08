@@ -1,0 +1,3 @@
+-r requirements.txt
+# Used only by the separate training command; inference reads portable JSON trees.
+scikit-learn>=1.7,<1.8

@@ -1,18 +1,20 @@
-# Citi Bike New York — database, ingestion, analysis và clustering
+# Citi Bike New York — database và các service dữ liệu
 
 **Tên đề tài:** Dự đoán số xe đạp công cộng có thể thuê tại các trạm Citi Bike ở New York trong 30 phút tới dựa trên thời tiết và thời gian.
 
 Giữ kiến trúc React + FastAPI + MySQL. Ingestion, Analysis, Clustering, Prediction
 là các tiến trình riêng: Ingestion chạy ngay khi khởi động rồi tại phút 00/30 theo
-giờ New York; Analysis chạy riêng mỗi 5 phút, Prediction dự kiến 5 phút và Clustering
-hằng ngày. Đã có mã database, ingestion, Analysis và Clustering. Chưa có React,
-app FastAPI, Prediction hoặc huấn luyện dự đoán; không có kết quả dự đoán giả.
+giờ New York; Analysis và Prediction chạy riêng mỗi 5 phút, Clustering hằng ngày.
+Đã có mã database, ingestion, Analysis, Clustering và Prediction; huấn luyện là
+lệnh riêng có điều kiện dữ liệu. Chưa có React/app FastAPI; không có kết quả dự đoán giả.
 
 Đã thêm **Bronze** lưu body API gốc và manifest mỗi lần thu thập. Các bảng quan sát
 MySQL hiện có là **Silver**. **Gold Analysis** đã có model, migration 0004, bộ tính
 thống kê và repository công bố; người dùng đã chạy thành công trên Aiven/GitHub.
-**Gold Clustering** đã có mã và migration 0005 đã áp dụng Aiven, hai bảng còn trống; xem
-[hướng dẫn Clustering](docs/Clustering.md). Prediction vẫn là hợp đồng.
+**Gold Clustering** đã có mã và migration 0005 đã áp dụng Aiven; xem
+[hướng dẫn Clustering](docs/Clustering.md). **Prediction** có baseline, pipeline
+huấn luyện/đánh giá Random Forest, migration 0006 và workflow riêng; chưa nâng schema
+0006/chạy cloud trong lần triển khai mã. Xem [Prediction](docs/Prediction.md).
 Chi tiết: [Bronze/Silver/Gold](docs/Bronze_Silver_Gold.md)
 và [hợp đồng dữ liệu](database/data_layers.json).
 
@@ -209,7 +211,7 @@ bù dữ liệu realtime cho thời gian đã qua. DST dùng UTC làm định da
 phương lặp vẫn có timestamp/offset khác nhau.
 Không tự bật lịch nền. Analysis đã có lịch riêng 5 phút; Clustering đã có lịch
 ngày New York xử lý DST, xem [hướng dẫn Clustering](docs/Clustering.md).
-Prediction chưa triển khai.
+Prediction có mã; lịch tự động riêng chưa bật, xem [Prediction](docs/Prediction.md).
 Thay đổi chu kỳ ingestion không đổi mục tiêu dự đoán +30 phút hoặc lịch Analysis/Prediction.
 
 Ngày 02/11/2026 đã kiểm tra và nâng schema của database đang cấu hình `newyorkbike`

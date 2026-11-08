@@ -63,7 +63,7 @@ def ingestion_session(engine):
 @contextmanager
 def service_session(engine, service_name):
     """A separate MySQL advisory lock per independent worker, across commits."""
-    if service_name not in ("analysis", "clustering", "prediction"):
+    if service_name not in ("analysis", "clustering", "prediction", "training"):
         raise ValueError("Unknown independent service")
     lock_name = "service_" + service_name + "_" + hashlib.sha256(str(engine.url.database).encode()).hexdigest()[:32]
     with engine.connect() as connection:

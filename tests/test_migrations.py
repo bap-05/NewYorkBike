@@ -88,7 +88,7 @@ def test_analysis_migration_adds_gold_without_changing_silver():
         with Operations.context(context):
             analysis_migration().upgrade()
         inspector = inspect(connection)
-        assert set(inspector.get_table_names()) == set(Base.metadata.tables) - {"clustering_runs", "station_clusters"}
+        assert set(inspector.get_table_names()) == set(Base.metadata.tables) - {"clustering_runs", "station_clusters", "model_versions", "training_jobs", "predictions"}
         for table, columns in before.items():
             assert [c['name'] for c in inspector.get_columns(table)] == columns
         assert connection.scalar(text("SELECT COUNT(*) FROM stations")) == 1
@@ -127,7 +127,7 @@ def test_clustering_migration_preserves_all_existing_rows_and_columns():
         before = {t: [c['name'] for c in inspect(connection).get_columns(t)] for t in inspect(connection).get_table_names()}
         with Operations.context(context):
             clustering_migration().upgrade()
-        assert set(inspect(connection).get_table_names()) == set(Base.metadata.tables)
+        assert set(inspect(connection).get_table_names()) == set(Base.metadata.tables) - {"model_versions", "training_jobs", "predictions"}
         for table, columns in before.items():
             assert [c['name'] for c in inspect(connection).get_columns(table)] == columns
         assert connection.scalar(text("SELECT name FROM stations")) == "Preserve"
@@ -145,3 +145,45 @@ def test_clustering_migration_mysql_compiles_additively():
     assert "FOREIGN KEY(source, service_run_id)" in sql
     assert "DATETIME(6)" in sql and "utf8mb4_bin" in sql
     assert not any(word in sql for word in ("DROP", "ALTER", "TRUNCATE"))
+
+
+def prediction_migration():
+    path = Path(__file__).resolve().parents[1] / "database/migrations/versions/0006_prediction.py"
+    spec = importlib.util.spec_from_file_location("prediction_schema",path)
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    return module
+
+
+def test_prediction_migration_preserves_previous_schema_and_rows():
+    from sqlalchemy import text
+    engine = create_engine("sqlite://")
+    with engine.begin() as connection:
+        context = MigrationContext.configure(connection)
+        with Operations.context(context):
+            migration().upgrade()
+            analysis_migration().upgrade()
+            clustering_migration().upgrade()
+        connection.execute(text("INSERT INTO stations (station_id,name,latitude,longitude,is_monitored,updated_at) VALUES ('test-only','Preserve',40,-74,1,'2026-01-01')"))
+        before = {t:[c['name'] for c in inspect(connection).get_columns(t)] for t in inspect(connection).get_table_names()}
+        with Operations.context(context):
+            prediction_migration().upgrade()
+        assert set(inspect(connection).get_table_names()) == set(Base.metadata.tables)
+        for table,columns in before.items():
+            assert [c['name'] for c in inspect(connection).get_columns(table)] == columns
+        for model in ('model_versions','training_jobs','predictions'):
+            assert {c['name'] for c in inspect(connection).get_columns(model)} == set(Base.metadata.tables[model].columns.keys())
+        assert connection.scalar(text("SELECT name FROM stations")) == 'Preserve'
+
+
+def test_prediction_migration_compiles_for_mysql_with_source_fks():
+    output=StringIO()
+    context=MigrationContext.configure(dialect_name='mysql',opts={'as_sql':True,'output_buffer':output})
+    with Operations.context(context):
+        prediction_migration().upgrade()
+    sql=output.getvalue()
+    assert sql.count('CREATE TABLE')==3 and sql.count('PRIMARY KEY')==3
+    assert 'FOREIGN KEY(source, station_id)' in sql and 'FOREIGN KEY(source, model_version_id)' in sql
+    assert 'FOREIGN KEY(source, service_run_id)' in sql and 'DATETIME(6)' in sql
+    assert 'InnoDB' in sql and 'utf8mb4_bin' in sql
+    assert not any(word in sql for word in ('DROP','TRUNCATE','ALTER'))

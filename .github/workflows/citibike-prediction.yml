@@ -1,0 +1,43 @@
+name: Citi Bike prediction
+
+on:
+  workflow_dispatch:
+  schedule:
+    # Five-minute cadence, offset from the busiest minute :00 and collector startup.
+    - cron: '2-57/5 * * * *'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: citibike-prediction
+  cancel-in-progress: false
+
+jobs:
+  predict:
+    if: github.event_name == 'workflow_dispatch' || vars.ENABLE_PREDICTION_SCHEDULE == 'true'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@v7
+        with:
+          python-version: '3.12'
+          cache: pip
+      - run: python -m pip install -r requirements.txt
+      - name: Publish forecasts and evaluate matured targets once
+        env:
+          PYTHONUNBUFFERED: '1'
+          MYSQL_HOST: ${{ secrets.MYSQL_HOST }}
+          MYSQL_PORT: ${{ secrets.MYSQL_PORT }}
+          MYSQL_DATABASE: ${{ secrets.MYSQL_DATABASE }}
+          MYSQL_USER: ${{ secrets.MYSQL_USER }}
+          MYSQL_PASSWORD: ${{ secrets.MYSQL_PASSWORD }}
+          MYSQL_CA_CERT: ${{ secrets.MYSQL_CA_CERT }}
+          STATION_IDS: ${{ vars.STATION_IDS }}
+          PREDICTION_MAX_BIKE_AGE_SECONDS: ${{ vars.PREDICTION_MAX_BIKE_AGE_SECONDS || '600' }}
+          PREDICTION_TIMESTAMP_TOLERANCE_SECONDS: ${{ vars.PREDICTION_TIMESTAMP_TOLERANCE_SECONDS || '120' }}
+          PREDICTION_HISTORY_DAYS: ${{ vars.PREDICTION_HISTORY_DAYS || '28' }}
+        run: python -m scripts.run_github_prediction
