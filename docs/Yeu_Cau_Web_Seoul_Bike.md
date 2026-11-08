@@ -684,3 +684,28 @@ Cập nhật sau xác nhận triển khai ngày 07/11/2026: đã push mã Cluste
 (`946d597`), áp migration `0005_clustering` trên Aiven và xác minh hai bảng mới,
 khóa ngoại và dữ liệu cũ được giữ nguyên. Hai bảng còn trống; chưa chạy phân nhóm
 ghi kết quả hoặc bật lịch. Kiểm tra tương thích schema Collector/Analysis đã qua.
+
+## 24. Triển khai mã Prediction — 08/11/2026 (ngày Việt Nam)
+
+- `prediction.main` độc lập có --preview READ ONLY, --once, --schedule 5 phút;
+  --train là tác vụ riêng, không chạy trong vòng Prediction. Không gọi API nguồn.
+- Baseline persistence có nhãn riêng. Random Forest depth4/8 có/không thời tiết,
+  lag30 thật, giờ/thứ NY; không dựng lag5/10/15 khi collector vẫn thu 30 phút.
+- Target = sampled_at + 30 phút; input_cutoff_at và issued_at riêng, UTC/DST đúng.
+  Chỉ dùng mẫu mới <=600 giây, valid/installed/renting. Mẫu cũ/mất/inactive báo
+  unavailable, không thay 0. Cùng kỳ/version/cấu hình không ghi trùng.
+- Nhãn nối theo timestamp ±120 giây có lưu offset, không nối qua khoảng mất.
+  Train/validation/test theo thời gian, purge nhãn qua ranh giới. Chọn theo
+  validation MAE vượt baseline, đánh giá test rồi refit cho tương lai.
+- Gate mặc định 14 ngày, 1.000 mẫu đầy đủ, 100 mẫu/trạm, từng phần >=50 mẫu;
+  chưa đủ thì insufficient_data, không huấn luyện/tạo model giả.
+- Migration 0006 chỉ thêm model_versions/training_jobs/predictions. RF lưu cây
+  JSON trong MySQL, không phụ thuộc file model trên runner tạm. Công bố nguyên tử,
+  giữ model/kết quả cũ khi lỗi. Đối chiếu dự đoán đến hạn bằng quan sát thực tế.
+- Preview Aiven thật: 2.316 cặp baseline, 2.283 cặp đủ đặc trưng ML, mới 6 ngày.
+  Baseline test theo thời gian 346 mẫu: MAE khoảng 1,272 xe, RMSE khoảng 2,099 xe;
+  chỉ là backtest khởi đầu, chưa chứng minh model ML. 10 trạm lúc preview đều có
+  dữ liệu quá 10 phút nên không tạo số dự đoán xem trước như thể dữ liệu còn mới.
+- Chưa áp migration 0006, chưa phát hành Prediction trên Aiven/runner hoặc bật
+  lịch. Đẩy mã trước khi nâng schema để các service cũ nhận revision mới.
+  Hướng dẫn đầy đủ: docs/Prediction.md; bằng chứng: docs/prediction_verification.json.

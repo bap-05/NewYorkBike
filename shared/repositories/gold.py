@@ -1,7 +1,7 @@
 """Only publish Gold rows belonging to a completed, successful analysis run."""
 from sqlalchemy import select
 
-from shared.models import AnalysisResult, ClusteringRun, ServiceRun, StationCluster
+from shared.models import AnalysisResult, ClusteringRun, Prediction, ServiceRun, StationCluster
 
 
 def analysis_results(*, source="citibike", configuration_hash=None):
@@ -36,3 +36,13 @@ def station_clusters(*, source="citibike", configuration_hash=None, available_at
         available_at=available_at).with_only_columns(ClusteringRun.id).scalar_subquery()
     return select(StationCluster).where(StationCluster.source == source,
         StationCluster.clustering_run_id == latest).order_by(StationCluster.station_id)
+
+
+def predictions(*, source="citibike", available_at=None):
+    query = select(Prediction).join(ServiceRun,
+        (ServiceRun.source==Prediction.source)&(ServiceRun.id==Prediction.service_run_id)).where(
+        Prediction.source==source,ServiceRun.service_name=="prediction",ServiceRun.status=="success",
+        ServiceRun.finished_at.is_not(None))
+    if available_at is not None:
+        query = query.where(Prediction.issued_at<=available_at,ServiceRun.finished_at<=available_at)
+    return query

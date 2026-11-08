@@ -162,7 +162,8 @@ Sau khi người dùng xác nhận, mã đã push lên GitHub ở commit `946d59
 khóa ngoại đúng và còn trống; cột/số dòng các bảng cũ giữ nguyên tại lúc kiểm tra.
 Chưa chạy phân nhóm ghi kết quả trên MySQL thật hoặc workflow Clustering trên runner thật;
 kiểm thử migration, thuật toán, rollback và chống trùng dùng SQLite độc lập.
-Chưa có Prediction, API hay giao diện phân nhóm. Không tạo số liệu nhóm giả.
+Prediction đã có mã riêng, xem [Prediction.md](Prediction.md); chưa có API hoặc
+giao diện phân nhóm. Không tạo số liệu nhóm giả.
 
 Toàn bộ 176 tests đã qua, gồm cửa sổ/lịch DST, loại inactive/NULL, nguồn riêng,
 dedup slot, gate 7 ngày, chọn k, tính lặp lại, chống ghi trùng, rollback nguyên tử,
