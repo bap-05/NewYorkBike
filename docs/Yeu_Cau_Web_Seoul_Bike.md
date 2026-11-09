@@ -709,3 +709,25 @@ ghi kết quả hoặc bật lịch. Kiểm tra tương thích schema Collector/
 - Chưa áp migration 0006, chưa phát hành Prediction trên Aiven/runner hoặc bật
   lịch. Đẩy mã trước khi nâng schema để các service cũ nhận revision mới.
   Hướng dẫn đầy đủ: docs/Prediction.md; bằng chứng: docs/prediction_verification.json.
+
+## 25. FastAPI và tổ chức thư mục — 09/11/2026
+
+- FastAPI ở `backend/app/`: app factory/lifespan, cấu hình, dependencies, DTO,
+  repository đọc, presenter và router tách riêng. `frontend/` dành cho React,
+  hiện chỉ có README, chưa có giao diện/bản đồ.
+- Giữ nguyên bốn service và CLI cũ. Tách shared/models thành base, stations,
+  observations, runs, analysis, clustering, prediction; __init__ re-export tên cũ.
+  Không thay schema, không tạo migration mới chỉ để tổ chức file.
+- Các GET đã có: live/ready, overview, stations/detail/history, predictions/latest/
+  history, analysis, clusters/latest và thành viên theo run. Có phân trang,
+  tìm tên, lọc nguồn và khoảng ISO có offset giới hạn độ dài.
+- Request dùng MySQL READ ONLY, kiểm tra schema >=0006_prediction. Không gọi API
+  ngoài, không chạy worker/train/scheduler hoặc tự migrate trong FastAPI.
+- Silver/Gold chỉ đọc các run đã công bố; latest không che inactive/missing bằng
+  mẫu valid cũ. NULL không đổi 0; có nhãn stale và giờ UTC/NY đúng DST. Prediction
+  phân biệt baseline/ML/unavailable và mốc đã hết hạn; không trả model artifact.
+- Analysis mặc định ghim cấu hình/phiên bản mới nhất đã công bố. Clustering giữ
+  snapshot thành công trước nếu lượt mới thiếu dữ liệu/lỗi; chưa có thì báo thật.
+- Chưa triển khai API admin đăng nhập/ghi dữ liệu, React hoặc public deployment.
+  Xem docs/FastAPI.md và docs/Project_Structure.md; yêu cầu chỉ giữ một bản chuẩn
+  trong docs, file gốc dẫn liên kết để không tạo hai bản cập nhật lệch nhau.
