@@ -5,22 +5,41 @@
 Giữ kiến trúc React + FastAPI + MySQL. Ingestion, Analysis, Clustering, Prediction
 là các tiến trình riêng: Ingestion chạy ngay khi khởi động rồi tại phút 00/30 theo
 giờ New York; Analysis và Prediction chạy riêng mỗi 5 phút, Clustering hằng ngày.
-Đã có mã database, ingestion, Analysis, Clustering và Prediction; huấn luyện là
-lệnh riêng có điều kiện dữ liệu. Chưa có React/app FastAPI; không có kết quả dự đoán giả.
+Đã có mã database, ingestion, Analysis, Clustering, Prediction và FastAPI chỉ đọc;
+huấn luyện là lệnh riêng có điều kiện dữ liệu. React chưa triển khai; không có kết
+quả dự đoán giả. Bố cục mới: [cấu trúc dự án](docs/Project_Structure.md).
 
 Đã thêm **Bronze** lưu body API gốc và manifest mỗi lần thu thập. Các bảng quan sát
 MySQL hiện có là **Silver**. **Gold Analysis** đã có model, migration 0004, bộ tính
 thống kê và repository công bố; người dùng đã chạy thành công trên Aiven/GitHub.
 **Gold Clustering** đã có mã và migration 0005 đã áp dụng Aiven; xem
 [hướng dẫn Clustering](docs/Clustering.md). **Prediction** có baseline, pipeline
-huấn luyện/đánh giá Random Forest, migration 0006 và workflow riêng; chưa nâng schema
-0006/chạy cloud trong lần triển khai mã. Xem [Prediction](docs/Prediction.md).
+huấn luyện/đánh giá Random Forest, migration 0006 đã áp dụng và đã chạy baseline
+trên Aiven/GitHub. Xem [Prediction](docs/Prediction.md).
 Chi tiết: [Bronze/Silver/Gold](docs/Bronze_Silver_Gold.md)
 và [hợp đồng dữ liệu](database/data_layers.json).
 
 Đặc tả: [docs/Yeu_Cau_Web_Seoul_Bike.md](docs/Yeu_Cau_Web_Seoul_Bike.md).
 Tên file cũ được giữ để không hỏng các liên kết. Kết quả chạy thật:
 [docs/Kiem_Tra_Citi_Bike.md](docs/Kiem_Tra_Citi_Bike.md).
+
+## FastAPI và bố cục mới
+
+API ở `backend/app/`, React sẽ ở `frontend/`. Các service dữ liệu vẫn giữ thư mục
+và lệnh chạy cũ. Model được tách trong `shared/models/`, giữ import tương thích;
+không thay schema hoặc lịch đang hoạt động. Bản yêu cầu chuẩn nằm trong docs,
+file cùng tên ở thư mục gốc chỉ dẫn liên kết.
+
+```powershell
+.\.venv\Scripts\python.exe -m pip install -r requirements-api.txt
+.\.venv\Scripts\python.exe -m uvicorn backend.app.main:app --host 127.0.0.1 --port 8000
+```
+
+Mở `http://127.0.0.1:8000/docs` để thử API. Có overview, trạm, xe/thời tiết,
+lịch sử, Analysis, Clustering và Prediction. Chỉ trả dữ liệu đã công bố, giữ NULL
+và nhãn stale/inactive/baseline/ML/hết hạn. Transaction chỉ đọc, không khởi chạy
+worker hoặc migration. Chưa có đăng nhập/ghi dữ liệu quản trị, React hay deploy
+API công khai. Chi tiết: [hướng dẫn FastAPI](docs/FastAPI.md).
 
 ## Chạy trên Windows
 

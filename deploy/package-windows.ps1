@@ -1,7 +1,7 @@
 $ErrorActionPreference = 'Stop'
 $ProjectRoot = Split-Path -Parent $PSScriptRoot
 $ArchivePath = Join-Path ([System.IO.Path]::GetTempPath()) 'citibike-deploy.tar.gz'
-$Items = @('.github', 'config', 'ingestion', 'analysis', 'shared', 'database', 'scripts', 'deploy', 'docs', 'README.md', 'requirements.txt', 'alembic.ini', '.env.example', '.gitignore')
+$Items = @('.github', 'config', 'backend', 'frontend', 'ingestion', 'analysis', 'clustering', 'prediction', 'shared', 'database', 'scripts', 'deploy', 'docs', 'README.md', 'requirements.txt', 'requirements-api.txt', 'requirements-clustering.txt', 'requirements-prediction.txt', 'alembic.ini', '.env.example', '.gitignore')
 
 Get-Command tar.exe -ErrorAction Stop | Out-Null
 & tar.exe '--exclude=__pycache__' '--exclude=*.pyc' '--exclude=.env' '--exclude=*.key' '--exclude=*.pem' -czf $ArchivePath -C $ProjectRoot @Items

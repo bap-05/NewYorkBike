@@ -1,0 +1,122 @@
+{
+  "verified_at_utc": "2026-11-09T07:24:19.586062+00:00",
+  "database_access": "MySQL session transaction READ ONLY",
+  "migration_applied": false,
+  "background_workers_started": false,
+  "server_deployed": false,
+  "requests": [
+    {
+      "path": "/health/live",
+      "status_code": 200
+    },
+    {
+      "path": "/health/ready",
+      "status_code": 200
+    },
+    {
+      "path": "/api/overview",
+      "status_code": 200
+    },
+    {
+      "path": "/api/stations",
+      "status_code": 200,
+      "station_count": 10,
+      "availability_statuses": {
+        "stale": 10
+      }
+    },
+    {
+      "path": "/api/analysis",
+      "status_code": 200,
+      "total_metrics": 30210
+    },
+    {
+      "path": "/api/clusters",
+      "status_code": 200,
+      "status": "insufficient_data"
+    },
+    {
+      "path": "/openapi.json",
+      "status_code": 200,
+      "route_count": 11
+    },
+    {
+      "path": "/api/stations/0096fecb-3a56-4585-9204-aa9554f7bc49",
+      "status_code": 200,
+      "total": null,
+      "status": null
+    },
+    {
+      "path": "/api/stations/0096fecb-3a56-4585-9204-aa9554f7bc49/history",
+      "status_code": 200,
+      "total": 48,
+      "status": null
+    },
+    {
+      "path": "/api/stations/0096fecb-3a56-4585-9204-aa9554f7bc49/predictions",
+      "status_code": 200,
+      "total": 2,
+      "status": null
+    },
+    {
+      "path": "/api/stations/0096fecb-3a56-4585-9204-aa9554f7bc49/predictions/latest",
+      "status_code": 200,
+      "total": null,
+      "status": "unavailable"
+    }
+  ],
+  "cluster_members_not_verified": "No published successful clustering snapshot at verification time",
+  "network_smoke_test": {
+    "checked_at_utc": "2026-11-09T07:31:12.836537+00:00",
+    "server": "temporary Uvicorn on 127.0.0.1",
+    "requests": [
+      {
+        "path": "/health/ready",
+        "status_code": 200
+      },
+      {
+        "path": "/api/stations",
+        "status_code": 200,
+        "total_stations": 10
+      },
+      {
+        "path": "/api/analysis",
+        "status_code": 200,
+        "total_metrics": 30210
+      },
+      {
+        "path": "/api/clusters",
+        "status_code": 200,
+        "clustering_status": "insufficient_data"
+      },
+      {
+        "path": "/api/stations/0096fecb-3a56-4585-9204-aa9554f7bc49",
+        "status_code": 200
+      },
+      {
+        "path": "/api/stations/0096fecb-3a56-4585-9204-aa9554f7bc49/history",
+        "status_code": 200
+      },
+      {
+        "path": "/api/stations/0096fecb-3a56-4585-9204-aa9554f7bc49/predictions",
+        "status_code": 200
+      },
+      {
+        "path": "/api/stations/0096fecb-3a56-4585-9204-aa9554f7bc49/predictions/latest",
+        "status_code": 200
+      }
+    ]
+  },
+  "pytest_passed": 238,
+  "packaging_verified": true,
+  "model_schema_changed": false,
+  "model_definition_comparison": {
+    "unchanged_class_count": 14,
+    "method": "AST comparison with HEAD before file split"
+  },
+  "library_versions": {
+    "fastapi": "0.162.2",
+    "uvicorn": "0.54.0",
+    "pydantic": "2.14.3"
+  }
+}
