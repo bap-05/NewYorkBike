@@ -117,7 +117,16 @@ def test_citibike_failure_is_recorded(session, settings, now):
 
     run = collect_once(session, SimpleNamespace(fetch=unavailable), None, settings.station_ids)
     assert run.status == "failed" and run.error_count > 0
+    assert run.error_count == 1
+    assert "absent or invalid" not in run.error_summary
     assert total(session, BikeObservation) == 0 and run.finished_at is not None
+
+
+def test_missing_stations_are_only_reported_after_successful_feed_fetch(session, settings):
+    run = collect_once(session, SimpleNamespace(fetch=lambda ids: []), None, settings.station_ids)
+    assert run.status == "failed"
+    assert run.error_count == len(settings.station_ids)
+    assert "absent or invalid in feeds" in run.error_summary
 
 
 def test_no_realtime_backfill(session, settings, now):
