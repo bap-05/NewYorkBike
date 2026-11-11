@@ -62,9 +62,11 @@ def collect_once(session, citibike, weather, station_ids, *, scheduled_at=None, 
             select(BikeObservation).where(BikeObservation.collection_run_id == run_id, BikeObservation.source == source))}
         needed = set(station_ids) - existing.keys()
         rows = []
+        feed_loaded = False
         if needed:
             try:
                 rows = citibike.fetch(needed)
+                feed_loaded = True
                 run.feed_metadata = getattr(citibike, "feed_metadata", None)
             except SourceError as exc:
                 errors.append(str(exc))
@@ -93,8 +95,11 @@ def collect_once(session, citibike, weather, station_ids, *, scheduled_at=None, 
             session.add(bike)
             session.flush()
             existing[data.station_id] = bike
-        for station_id in sorted(needed - found):
-            errors.append(f"citibike: configured station {station_id} absent or invalid in feeds")
+        # An unavailable feed cannot prove a station is absent. Report the
+        # source failure once; only check membership after a successful fetch.
+        if feed_loaded:
+            for station_id in sorted(needed - found):
+                errors.append(f"citibike: configured station {station_id} absent or invalid in feeds")
 
         for station_id, bike in existing.items():
             if bike.quality_status != "valid":
