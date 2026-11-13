@@ -27,9 +27,11 @@ def baseline_model(session,source,now):
 
 
 def active_model(session,source,cutoff,settings,options):
-    models = session.scalars(select(ModelVersion).where(ModelVersion.source==source,
+    # Sort lightweight IDs instead of filesorting the large JSON forest payload.
+    ids = session.scalars(select(ModelVersion.id).where(ModelVersion.source==source,
         ModelVersion.kind=="random_forest",ModelVersion.is_active.is_(True),
-        ModelVersion.created_at<=cutoff,ModelVersion.train_end<=cutoff).order_by(ModelVersion.created_at.desc(),ModelVersion.id.desc()))
+        ModelVersion.created_at<=cutoff,ModelVersion.train_end<=cutoff).order_by(ModelVersion.created_at.desc(),ModelVersion.id.desc())).all()
+    models = (session.get(ModelVersion,model_id) for model_id in ids)
     return next((m for m in models if m.feature_config.get("policy")==feature_policy(settings,options)),None)
 
 
