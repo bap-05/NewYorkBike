@@ -37,13 +37,13 @@ def persist_results(session, rows):
         return
     table = AnalysisResult.__table__
     dialect = session.get_bind().dialect.name
-    mutable = [column.name for column in table.columns if column.name not in ("id", *IDENTITY)]
+    mutable = [column.key for column in table.columns if column.key not in ("id", *IDENTITY)]
     if dialect == "mysql":
         statement = mysql_insert(table)
         statement = statement.on_duplicate_key_update(**{name: statement.inserted[name] for name in mutable})
     elif dialect == "sqlite":
         statement = sqlite_insert(table)
-        statement = statement.on_conflict_do_update(index_elements=list(IDENTITY),
+        statement = statement.on_conflict_do_update(index_elements=[table.c[name] for name in IDENTITY],
             set_={name: statement.excluded[name] for name in mutable})
     else:
         raise ValueError("Analysis persistence supports MySQL; SQLite is for isolated tests only")

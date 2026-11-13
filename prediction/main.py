@@ -34,7 +34,7 @@ def preview(settings,options,*,output="artifacts/prediction_preview.json"):
                 connection.exec_driver_sql("SET SESSION TRANSACTION READ ONLY")
             with Session(bind=connection) as session:
                 stations,groups = load_history(session,settings,cutoff,options)
-                model = active_model(session,settings.bike_source,cutoff,settings,options) if inspect(connection).has_table("model_versions") else None
+                model = active_model(session,settings.bike_source,cutoff,settings,options) if inspect(connection).has_table(ModelVersion.__tablename__) else None
                 forecasts = forecast_rows(stations,groups,settings,options,cutoff,model)
                 evaluation,_ = build_report(stations,groups,settings,options)
                 report = {"database_written":False,"preview_cutoff":cutoff.isoformat(),"configuration":options.as_dict(),

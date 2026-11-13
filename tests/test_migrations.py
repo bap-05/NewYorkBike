@@ -7,6 +7,12 @@ from alembic.operations import Operations
 from sqlalchemy import create_engine, inspect
 
 from shared.models import Base
+from shared.database_names import TABLE_NAMES,db_table
+
+
+def logical_tables():
+    reverse={physical:logical for logical,physical in TABLE_NAMES.items()}
+    return {reverse.get(name,name) for name in Base.metadata.tables}
 
 
 def migration():
@@ -88,7 +94,7 @@ def test_analysis_migration_adds_gold_without_changing_silver():
         with Operations.context(context):
             analysis_migration().upgrade()
         inspector = inspect(connection)
-        assert set(inspector.get_table_names()) == set(Base.metadata.tables) - {"clustering_runs", "station_clusters", "model_versions", "training_jobs", "predictions"}
+        assert set(inspector.get_table_names()) == logical_tables() - {"clustering_runs", "station_clusters", "model_versions", "training_jobs", "predictions"}
         for table, columns in before.items():
             assert [c['name'] for c in inspector.get_columns(table)] == columns
         assert connection.scalar(text("SELECT COUNT(*) FROM stations")) == 1
@@ -127,7 +133,7 @@ def test_clustering_migration_preserves_all_existing_rows_and_columns():
         before = {t: [c['name'] for c in inspect(connection).get_columns(t)] for t in inspect(connection).get_table_names()}
         with Operations.context(context):
             clustering_migration().upgrade()
-        assert set(inspect(connection).get_table_names()) == set(Base.metadata.tables) - {"model_versions", "training_jobs", "predictions"}
+        assert set(inspect(connection).get_table_names()) == logical_tables() - {"model_versions", "training_jobs", "predictions"}
         for table, columns in before.items():
             assert [c['name'] for c in inspect(connection).get_columns(table)] == columns
         assert connection.scalar(text("SELECT name FROM stations")) == "Preserve"
@@ -168,11 +174,11 @@ def test_prediction_migration_preserves_previous_schema_and_rows():
         before = {t:[c['name'] for c in inspect(connection).get_columns(t)] for t in inspect(connection).get_table_names()}
         with Operations.context(context):
             prediction_migration().upgrade()
-        assert set(inspect(connection).get_table_names()) == set(Base.metadata.tables)
+        assert set(inspect(connection).get_table_names()) == logical_tables()
         for table,columns in before.items():
             assert [c['name'] for c in inspect(connection).get_columns(table)] == columns
         for model in ('model_versions','training_jobs','predictions'):
-            assert {c['name'] for c in inspect(connection).get_columns(model)} == set(Base.metadata.tables[model].columns.keys())
+            assert {c['name'] for c in inspect(connection).get_columns(model)} == set(Base.metadata.tables[db_table(model)].columns.keys())
         assert connection.scalar(text("SELECT name FROM stations")) == 'Preserve'
 
 
