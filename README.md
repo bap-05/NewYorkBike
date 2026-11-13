@@ -303,3 +303,8 @@ archive không chứa `.env`, virtualenv, dữ liệu Bronze/MySQL hoặc SSH ke
 - [GBFS 3.0](https://gbfs.org/documentation/reference/)
 - [Open-Meteo](https://open-meteo.com/en/docs)
 - [HTTPX proxy](https://www.python-httpx.org/advanced/proxies/)
+
+
+## T?n b?ng v? c?t ti?ng Vi?t
+
+T? migration `0007_vietnamese_names`, 12 b?ng nghi?p v? v? 168 c?t d?ng t?n ti?ng Vi?t kh?ng d?u. Xem [b?ng ?nh x? v? c?ch truy v?n](docs/Ten_Bang_Tieng_Viet.md). C?c VIEW t?n c? duy tr? t??ng th?ch cho phi?n b?n d?ch v? tr??c ??.
