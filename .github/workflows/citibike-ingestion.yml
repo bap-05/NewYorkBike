@@ -39,7 +39,7 @@ jobs:
           MYSQL_USER: ${{ secrets.MYSQL_USER }}
           MYSQL_PASSWORD: ${{ secrets.MYSQL_PASSWORD }}
           MYSQL_CA_CERT: ${{ secrets.MYSQL_CA_CERT }}
-          OUTBOUND_PROXY_ENABLED: ${{ vars.OUTBOUND_PROXY_ENABLED || 'true' }}
+          OUTBOUND_PROXY_ENABLED: ${{ vars.OUTBOUND_PROXY_ENABLED || 'false' }}
           OUTBOUND_PROXY_URLS: ${{ secrets.OUTBOUND_PROXY_URLS || '[]' }}
           STATION_IDS: ${{ vars.STATION_IDS }}
         run: python -m scripts.run_github_collection
