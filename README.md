@@ -1,299 +1,262 @@
-# NewYorkBike — Dự đoán số xe Citi Bike sau 30 phút
+# NewYorkBike
 
-**Tên đề tài:** Dự đoán số xe đạp công cộng có thể thuê tại các trạm Citi Bike ở New York trong 30 phút tới dựa trên thời tiết và thời gian.
+Hệ thống theo dõi và dự báo số xe có thể thuê tại các trạm Citi Bike ở New York, kết hợp dữ liệu xe, thời tiết và thời gian.
 
-Dự án theo dõi 10 trạm nghiên cứu, thu thập dữ liệu xe và thời tiết, phân tích, phân nhóm trạm và dự đoán số xe có thể thuê sau 30 phút. Giao diện và biểu đồ dùng tiếng Việt; tên riêng trạm, đường phố giữ nguyên để tra cứu địa điểm.
+Dự án theo dõi 10 trạm nghiên cứu, có bản đồ, lịch sử số xe, phân tích dữ liệu, phân nhóm hành vi trạm và hai loại dự báo: **30 phút tiếp theo** và **từng giờ ngày mai**. Giao diện sử dụng tiếng Việt; tên trạm giữ nguyên để tra cứu vị trí.
 
-## 1. Kiến trúc
+## Chức năng
+
+- Thu thập trạng thái trạm từ Citi Bike GBFS và thời tiết từ Open-Meteo.
+- Lưu phản hồi nguồn, dữ liệu chuẩn hóa và kết quả xử lý để truy vết.
+- Hiển thị tổng quan, bản đồ, chi tiết trạm và lịch sử số xe.
+- Phân tích theo thời gian; tạo và tự cập nhật báo cáo EDA.
+- Phân nhóm hành vi trạm bằng K-means, hiển thị trên bản đồ và thẻ nhóm.
+- Dự báo số xe sau 30 phút; nhấn vào thẻ dự báo để xem lịch sử và kết quả đối chiếu của trạm.
+- Phát hành dự báo từng giờ ngày mai, lưu vào database và tự chấm khi có dữ liệu thực tế. Giao diện hiển thị chênh lệch theo giờ của ngày hôm qua.
+
+Số xe có thể thuê là lượng xe sẵn có tại trạm, không phải số lượt thuê. Dữ liệu thiếu không được thay bằng 0. Thời gian lưu theo UTC và hiển thị theo `America/New_York`, có xử lý EST/EDT.
+
+## Kiến trúc và công nghệ
 
 ```text
 Citi Bike GBFS + Open-Meteo
-             │
-      Thu thập dữ liệu ──────► Bronze: phản hồi gốc + manifest
-             │
-             ▼
-      MySQL / Aiven: Silver
-             │
-     ┌───────┼───────────┐
-     ▼       ▼           ▼
- Phân tích  Phân nhóm   Dự đoán +30 phút
-     └───────┴───────────┘
-             │
-             ▼
-      MySQL / Aiven: Gold
-             │
-             ▼
-      FastAPI ──────► React
+            |
+       Data Ingestion ----> Bronze: phản hồi gốc và manifest
+            |
+       MySQL: Silver
+            |
+    +-------+----------+
+    |       |          |
+ Analysis Clustering Prediction
+    |       |          |
+    +-------+----------+
+            |
+       MySQL: Gold
+            |
+         FastAPI ----> React
+
+Database ----> EDA worker ----> artifacts/eda ----> FastAPI
 ```
 
-| Thành phần | Công nghệ / nhiệm vụ |
-|---|---|
-| Giao diện | React, Vite, React Router, Leaflet; [nguồn bản đồ](docs/Map_Display.md) |
-| API | Python + FastAPI, đọc dữ liệu và kết quả đã công bố |
-| Database | MySQL; môi trường hiện tại dùng Aiven |
-| Thu thập — Ingestion | Đọc API nguồn, lưu phản hồi gốc và dữ liệu chuẩn hóa |
-| Phân tích — Analysis | Thống kê theo trạm, giờ/ngày và chất lượng dữ liệu |
-| Phân nhóm — Clustering | Chuẩn hóa đặc trưng hành vi và phân nhóm K-means |
-| Dự đoán — Prediction | Mô hình cơ sở và pipeline học máy rừng ngẫu nhiên |
-| Khám phá dữ liệu — EDA | Báo cáo HTML, CSV và 12 biểu đồ theo yêu cầu |
+| Thành phần | Công nghệ |
+| --- | --- |
+| Giao diện | React 19, Vite, React Router, Leaflet |
+| API | FastAPI, Uvicorn |
+| Cơ sở dữ liệu | MySQL, SQLAlchemy, Alembic; hỗ trợ Aiven qua TLS |
+| Phân tích và EDA | pandas, NumPy, Matplotlib, seaborn |
+| Học máy | scikit-learn: Random Forest và K-means |
+| Kiểm thử | pytest, Node.js test runner, Playwright |
+| Vận hành | CLI độc lập, GitHub Actions, Docker Compose |
 
-Bốn dịch vụ dữ liệu chạy độc lập, có thể mở mỗi dịch vụ ở một terminal riêng. Mở website không khởi chạy thu thập, phân nhóm hoặc huấn luyện. Huấn luyện học máy là lệnh riêng, tách khỏi lịch phát hành dự đoán.
+Các dịch vụ dữ liệu chạy độc lập. API đọc kết quả đã công bố; việc mở trang web không khởi chạy thu thập hoặc huấn luyện. Riêng báo cáo EDA được API kiểm tra và tạo lại trong tiến trình nền khi tính năng tự cập nhật được bật.
 
-## 2. Trạng thái đã kiểm tra
+## Cấu trúc thư mục
 
-**Cập nhật Clustering ngày 10/11/2026:** đã chạy và công bố thành công
-`clustering_run=5`, phiên bản `clustering-v2-cadence`, cửa sổ 03–09/11 theo
-New York. Cả 10 trạm đạt điều kiện, chia thành 3 nhóm (2, 5, 3 trạm), điểm
-tách nhóm 0,428. Đã kiểm tra Aiven, API và giao diện. Bằng chứng:
-[kết quả phân nhóm](docs/clustering_behavior_verification_20261110.json).
-Đây là phân nhóm hành vi trạm, không phải phân loại ít/nhiều xe ngày mai.
+```text
+NewYorkBike/
+├── frontend/                 # Giao diện React
+├── services/
+│   ├── data-ingestion/       # Thu thập xe và thời tiết
+│   ├── data-analysis/        # Phân tích và eda/
+│   ├── clustering/           # Phân nhóm trạm
+│   ├── prediction/           # Huấn luyện, phát hành và chấm dự báo
+│   └── database-api/         # FastAPI
+├── shared/                   # Cấu hình, models và truy vấn dùng chung
+├── database/migrations/      # Migration Alembic
+├── config/                   # Cấu hình trạm và lịch lấy mẫu
+├── scripts/                  # Nhập lịch sử, đánh giá, sao lưu và chạy cloud
+├── tests/                    # Kiểm thử Python
+├── docs/                     # Tài liệu chuyên đề
+├── .github/workflows/        # Tác vụ GitHub Actions
+├── .env.example              # Cấu hình mẫu
+├── requirements.txt          # Phụ thuộc Python và cài đặt editable
+├── pyproject.toml            # Ánh xạ module tới thư mục dịch vụ
+├── docker-compose.yml
+└── PROJECT_REPORT.md         # Báo cáo tổng hợp đề tài
+```
 
-**Mốc xác minh gần nhất trong tài liệu này: ngày 09/11/2026.** Đây là kết quả tại thời điểm kiểm tra, không phải trạng thái trực tiếp mỗi lần đọc README.
+Các thư mục `data/`, `artifacts/`, `backups/` lưu dữ liệu và kết quả cục bộ; không đi kèm đầy đủ khi clone mã nguồn.
 
-- Thu thập, Analysis và Prediction đã chạy trên Aiven/GitHub; khoảng cách giữa các lượt gần nhất là 5 phút.
-- Đã có FastAPI chỉ đọc và React với 5 trang: Tổng quan, Bản đồ trạm, Chi tiết trạm, Phân tích & phân nhóm, Dự đoán +30 phút. Website đang chạy cục bộ.
-- 10/10 trạm có dữ liệu mới hợp lệ tại lần kiểm tra.
-- Clustering đã chạy lại nhưng chưa có nhóm: ngày 02/11 trong cửa sổ 7 ngày có độ phủ dưới ngưỡng 80% mỗi ngày. Chưa xác nhận lịch Clustering ổn định hằng ngày.
-- Có 8 ngày và 3.388 cặp mẫu đủ đặc trưng học máy, chưa đạt ngưỡng 14 ngày. Dự đoán hiện dùng mô hình cơ sở: giữ nguyên số xe ở mẫu đầu vào.
-- Kiểm thử lịch sử mô hình cơ sở trên 530 mẫu: MAE **2,31 xe**, RMSE **3,59 xe**. Chưa có kết quả so sánh với mô hình học máy được huấn luyện hợp lệ.
-- Bản sửa độ phủ theo lịch 30 → 5 phút đã có ở máy phát triển; Analysis trên GitHub tại lần kiểm tra vẫn chạy `analysis-v1`, chưa có bản sửa này.
+## Cài đặt trên Windows
 
-Chi tiết: [Tài liệu tổng hợp](PROJECT_REPORT.md).
+Yêu cầu: **Python 3.11 trở lên** (khuyến nghị 3.12), **Node.js 22.12 trở lên**, npm và **MySQL 8.0.16 trở lên** hoặc database Aiven tương thích. Tạo sẵn database và tài khoản có quyền phù hợp.
 
-## 3. Nguồn và quy tắc dữ liệu
+Các lệnh dưới đây dành cho **CMD**, chạy từ thư mục gốc dự án. Thay đường dẫn nếu bạn lưu dự án ở vị trí khác.
 
-**Citi Bike:** đọc [GBFS discovery](https://gbfs.citibikenyc.com/gbfs/gbfs.json) để tìm `station_information` và `station_status`, kiểm tra phiên bản rồi ghép bằng `station_id` dạng chuỗi. Không cần `SEOUL_API_KEY`.
-
-**Thời tiết:** gọi `https://api.open-meteo.com/v1/forecast` theo tọa độ từng trạm, lấy nhiệt độ, độ ẩm, mưa và tốc độ gió. Thời tiết đủ mới có thể được dùng lại; giữ đơn vị, kỳ đo, thời điểm và tọa độ yêu cầu.
-
-- **Bronze:** phản hồi API gốc và manifest từng lần thu, kèm thông tin kiểm tra toàn vẹn.
-- **Silver:** dữ liệu trạm, quan sát xe, thời tiết và liên kết trong MySQL.
-- **Gold:** kết quả phân tích, phân nhóm và dự đoán để API/giao diện đọc.
-- Lưu thời gian **UTC**, hiển thị theo **America/New_York**, xử lý đổi giờ theo mùa. Thời điểm nguồn, thu thập, phát hành và mục tiêu dự đoán được lưu riêng.
-- Không thay dữ liệu thiếu bằng 0; phân biệt dữ liệu cũ và trạm ngừng cho thuê.
-- Chống ghi trùng bằng khóa dữ liệu và khóa dịch vụ. Không tự bù dữ liệu thời gian thực đã bỏ lỡ hoặc tạo kết quả giả.
-- Sức chứa dùng `capacity`, giữ `rack_count` cũ. Dữ liệu Seoul cũ có định danh nguồn riêng, không trộn với Citi Bike.
-
-Xem [Bronze/Silver/Gold](docs/Bronze_Silver_Gold.md) và [yêu cầu đề tài](docs/Yeu_Cau_Web_Seoul_Bike.md). Tên tệp đặc tả cũ được giữ để các liên kết còn hoạt động.
-
-## 4. Cài đặt trên Windows
-
-Cần Python 3.12 hoặc 3.13, Node.js 22.12 trở lên và MySQL 8.0.16 trở lên hoặc thông tin kết nối Aiven. Các lệnh Python chạy từ thư mục gốc dự án.
-
-```powershell
-cd F:\126\NewYorkBike
+```bat
+cd /d F:\126\NewYorkBike
 python -m venv .venv
-.\.venv\Scripts\python.exe -m pip install -r requirements.txt
+.venv\Scripts\python.exe -m pip install -r requirements.txt
+if not exist .env copy .env.example .env
 ```
 
-Nếu đã có `.venv`, dùng môi trường đó và cài phụ thuộc còn thiếu. `requirements.txt` gồm phụ thuộc cho API, các dịch vụ, EDA và kiểm thử. Gọi trực tiếp Python trong `.venv` giúp tránh dùng nhầm Python hệ thống.
+Nếu đã có `.venv`, bỏ qua lệnh tạo môi trường. Lệnh cài đặt cũng đăng ký các module trong `services/`, nên cần chạy trước khi dùng `python -m ingestion.main`, `python -m eda.main` hoặc các dịch vụ khác.
 
-**Chỉ tạo `.env` nếu chưa có**, sau đó điền thông tin thật:
+Điền cấu hình trong `.env`:
 
-```powershell
-if (-not (Test-Path .env)) { Copy-Item .env.example .env }
-```
-
-| Cấu hình | Cách điền |
-|---|---|
-| `MYSQL_HOST`, `MYSQL_PORT`, `MYSQL_DATABASE` | Máy chủ, cổng và tên database thực tế |
-| `MYSQL_USER`, `MYSQL_PASSWORD` | Tài khoản MySQL của bạn |
-| `MYSQL_SSL_CA` | Với Aiven: đường dẫn CA, ví dụ `certs/aiven-ca.pem` |
-| `STATION_IDS` | Mã trạm thật dạng chuỗi, phân cách bằng dấu phẩy |
+| Biến | Nội dung |
+| --- | --- |
+| `MYSQL_HOST`, `MYSQL_PORT` | Máy chủ và cổng MySQL |
+| `MYSQL_DATABASE` | Tên database thực tế; không cần đổi tên database cũ |
+| `MYSQL_USER`, `MYSQL_PASSWORD` | Thông tin đăng nhập |
+| `MYSQL_SSL_CA` | Đường dẫn CA khi dùng TLS, ví dụ `certs/aiven-ca.pem`; để trống nếu MySQL local không dùng TLS |
+| `DATABASE_SCHEMA_LANGUAGE` | `vietnamese` với schema sau migration `0007` |
 | `BIKE_SOURCE` | `citibike` |
+| `STATION_IDS` | Mã trạm dạng chuỗi, phân cách bằng dấu phẩy |
 | `DISPLAY_TIMEZONE` | `America/New_York` |
-| `OUTBOUND_PROXY_ENABLED` | `true` nếu muốn các yêu cầu nguồn đi qua proxy |
-| `OUTBOUND_PROXY_URLS` | Mảng JSON chứa URL proxy thật |
-| `SAMPLING_SCHEDULE_FILE` | `config/sampling_schedule.json`, để tính độ phủ theo lịch lịch sử |
+| `OUTBOUND_PROXY_ENABLED` | `false` để kết nối trực tiếp; `true` nếu dùng proxy |
+| `OUTBOUND_PROXY_URLS` | Mảng JSON các URL proxy khi bật proxy |
+| `EDA_AUTO_UPDATE` | `true` để tự cập nhật báo cáo khi API chạy |
 
-Các mặc định khác nằm trong [.env.example](.env.example). Giữ tên database thực tế kể cả khi tên còn là `seoul_bike`; không cần đổi tên hoặc xóa dữ liệu. Không đưa `.env`, mật khẩu, token hoặc chứng chỉ riêng lên Git. Không đặt bí mật trong `VITE_*` vì trình duyệt đọc được chúng.
+Các biến còn lại nằm trong [.env.example](.env.example). Không đưa `.env`, mật khẩu hoặc token lên Git. Các biến `VITE_*` hiển thị trong trình duyệt, chỉ dùng cho cấu hình công khai.
 
-Kiểm tra kết nối:
+Liệt kê mã trạm thật để điền `STATION_IDS`:
 
-```powershell
-.\.venv\Scripts\python.exe -m scripts.check_database
+```bat
+.venv\Scripts\python.exe -m ingestion.main --list-stations --limit 10
 ```
 
-Hướng dẫn: [kết nối Aiven trên Windows](docs/Ket_Noi_Aiven_Windows.md).
+Kiểm tra kết nối và nâng schema:
 
-## 5. Migration database
-
-Với database mới hoặc đã được Alembic quản lý:
-
-```powershell
-.\.venv\Scripts\python.exe -m alembic current
-.\.venv\Scripts\python.exe -m alembic upgrade head
-.\.venv\Scripts\python.exe -m alembic current
+```bat
+.venv\Scripts\python.exe -m scripts.check_database
+.venv\Scripts\python.exe -m alembic upgrade head
+.venv\Scripts\python.exe -m alembic current
 ```
 
-Đầu chuỗi migration hiện tại là `0006_prediction`. Migration tạo/cập nhật schema, không cần tạo từng bảng bằng tay. Sao lưu database có dữ liệu trước khi nâng schema. Nếu có collector cloud đang chạy, bảo đảm mã trên nhánh triển khai tương thích trước khi nâng.
+Migration hiện tại là `0007_vietnamese_names`, sử dụng tên bảng nghiệp vụ tiếng Việt không dấu. Với database đã có dữ liệu, sao lưu và kiểm tra trạng thái migration trước khi nâng cấp; không tự `stamp head` để bỏ qua lỗi. Xem [hướng dẫn tên bảng](docs/Ten_Bang_Tieng_Viet.md).
 
-Database có bảng tạo tay nhưng chưa có Alembic cần được kiểm tra bằng `scripts.adopt_legacy_schema` trước; không tự `stamp head` để bỏ qua lỗi. Các báo cáo migration cũ trong `docs/` chỉ ghi trạng thái tại ngày kiểm tra tương ứng.
+## Chạy website
 
-## 6. Chạy từng dịch vụ một lần
+Mở hai terminal riêng.
 
-Sau khi có cấu hình và schema phù hợp, chọn lệnh cần dùng, không cần chạy tất cả mỗi lần mở website:
+**Terminal 1 — API:**
 
-| Công việc | Lệnh từ thư mục gốc |
-|---|---|
-| Liệt kê 10 trạm thật, không ghi database | `.\.venv\Scripts\python.exe -m ingestion.main --list-stations --limit 10` |
-| Thu thập một lần, ghi Bronze và Silver | `.\.venv\Scripts\python.exe -m ingestion.main --once` |
-| Xem trước Analysis, không ghi database | `.\.venv\Scripts\python.exe -m analysis.main --preview` |
-| Phân tích một lần, lưu Gold | `.\.venv\Scripts\python.exe -m analysis.main --once` |
-| Xem trước phân nhóm | `.\.venv\Scripts\python.exe -m clustering.main --preview` |
-| Phân nhóm một lần, lưu trạng thái/kết quả | `.\.venv\Scripts\python.exe -m clustering.main --once` |
-| Xem trước dự đoán và điều kiện huấn luyện | `.\.venv\Scripts\python.exe -m prediction.main --preview` |
-| Phát hành dự đoán và đối chiếu dự đoán đã đến hạn | `.\.venv\Scripts\python.exe -m prediction.main --once` |
-| Huấn luyện riêng khi đủ điều kiện | `.\.venv\Scripts\python.exe -m prediction.main --train` |
-
-Các lệnh xem trước lưu báo cáo trong `artifacts/`. Mặc định Clustering yêu cầu 7 ngày đã hoàn tất, ít nhất 6 trạm đủ điều kiện và độ phủ tối thiểu 80% mỗi ngày. Huấn luyện yêu cầu tối thiểu 14 ngày cùng các ngưỡng số mẫu; đủ ngày không bảo đảm mô hình học máy tốt hơn mô hình cơ sở.
-
-Mục tiêu luôn là **thời điểm mẫu đầu vào +30 phút**, không phải thời điểm mở web +30 phút. Huấn luyện chia dữ liệu theo thời gian, chọn mô hình bằng tập xác thực và đánh giá trên tập kiểm thử riêng. Chi tiết: [Prediction](docs/Prediction.md).
-
-## 7. Lịch tự động và cách dừng
-
-| Dịch vụ | Lịch đám mây ghi nhận ngày 09/11/2026 | Lịch CLI cục bộ `--schedule` |
-|---|---|---|
-| Thu thập | Kích hoạt bên ngoài mỗi 5 phút | Lấy ngay, sau đó phút **00 và 30** |
-| Analysis | Kích hoạt bên ngoài mỗi 5 phút | Chạy ngay, sau đó mỗi 5 phút |
-| Prediction | Kích hoạt bên ngoài mỗi 5 phút, lệch khoảng 2 phút sau mốc thu | Chạy ngay, sau đó mỗi 5 phút |
-| Clustering | GitHub khai báo mỗi ngày 07:00 UTC; chưa xác nhận ổn định hằng ngày | Chạy ngay, sau đó 02:00 New York mỗi ngày |
-
-Lịch kích hoạt và lịch kỳ vọng để tính độ phủ là hai cấu hình riêng. `config/sampling_schedule.json` ghi mốc chuyển thu thập từ 30 sang 5 phút: **09/11/2026 06:25 New York = 11:25 UTC = 18:25 Việt Nam**. Không áp chu kỳ 5 phút ngược lên dữ liệu cũ.
-
-Ở máy cá nhân, thêm `--schedule` thay cho `--once`, giữ terminal mở và nhấn **Ctrl+C** để dừng. Không chạy thêm lịch cục bộ cho cùng dịch vụ nếu lịch cloud đang ghi vào cùng database. Tắt laptop sẽ dừng tiến trình cục bộ; GitHub Actions và Aiven hoạt động độc lập.
-
-GitHub có thể kích hoạt trễ. Nếu dùng cron-job.org, chỉ bật một nguồn lịch cho mỗi dịch vụ và đối chiếu lượt chạy với dữ liệu thực tế. Xem [GitHub Actions/Aiven](docs/Deploy_GitHub_Actions_Aiven.md) và [độ phủ khi đổi chu kỳ](docs/Do_Phu_Lich_Thu_Thap.md).
-
-## 8. Mở website
-
-**Terminal 1 — FastAPI**, từ thư mục gốc:
-
-```powershell
-.\.venv\Scripts\python.exe -m uvicorn backend.app.main:app --host 127.0.0.1 --port 8000 --log-level error --no-access-log
+```bat
+cd /d F:\126\NewYorkBike
+.venv\Scripts\python.exe -m uvicorn backend.app.main:app --host 127.0.0.1 --port 8000 --reload --reload-dir services/database-api --reload-dir shared --log-level error --no-access-log
 ```
 
-**Terminal 2 — React:**
+**Terminal 2 — giao diện:**
 
-```powershell
-cd F:\126\NewYorkBike\frontend
+```bat
+cd /d F:\126\NewYorkBike\frontend
 npm ci
 npm run dev
 ```
 
-- Giao diện: **http://127.0.0.1:5173**.
-- Tài liệu thử API: **http://127.0.0.1:8000/docs**.
-- Giao diện tự tải lại dữ liệu mỗi phút; nút **Làm mới** không chạy lại dịch vụ.
-- Dấu `—` thể hiện thiếu kết quả phù hợp; số 0 vẫn là 0.
-- Dự đoán hết hạn, trạm ngừng cho thuê và mẫu quá cũ có nhãn riêng.
+- Website: http://127.0.0.1:5173
+- Tài liệu API: http://127.0.0.1:8000/docs
+- Vite chuyển tiếp `/api` sang API tại cổng `8000`. Khi đặt API ở máy khác, xem [cấu hình frontend](frontend/.env.example).
 
-Cấu hình API ở máy khác, CORS và bản dựng: [FastAPI](docs/FastAPI.md) · [React](frontend/README.md).
+Nhấn `Ctrl+C` trong terminal để dừng tiến trình tương ứng. Nếu cổng `5173` đã được dùng, dừng phiên Vite cũ hoặc chạy `npm run dev -- --port 5174`; khi đổi cổng, bổ sung địa chỉ frontend vào `API_CORS_ORIGINS` nếu truy cập API trực tiếp.
 
-## 9. Tạo biểu đồ khám phá dữ liệu
+Website cần database và các kết quả đã được dịch vụ tạo ra. Mở giao diện riêng không tạo thêm dữ liệu.
 
-Trên web, các biểu đồ đường/phân tán/phân phối có ô chọn **ngày, tuần hoặc
-tháng cụ thể** và chọn trạm; dữ liệu của kỳ được đọc trực tiếp từ Aiven theo
-lịch New York. Kỳ chưa có dữ liệu hiển thị trống. Các ảnh xu hướng, mùa vụ,
-tương quan và bảng thống kê vẫn thuộc báo cáo EDA đã tạo.
+## Chạy các dịch vụ dữ liệu
 
-Đã bổ sung biểu đồ đường/phân tán/phân phối theo ngày, tuần, tháng; xu hướng và
-mùa vụ theo tuần khi dữ liệu ngắn. Trang Dự đoán có dự báo từng giờ ngày mai,
-phân loại mức xe sẵn có và làm nổi bật giờ ít xe bằng mô hình cơ sở, tách riêng mục tiêu +30 phút.
-Chi tiết điều kiện, phương pháp và giới hạn: [yêu cầu chuỗi thời gian](docs/Time_Series_Requirements.md).
+Chạy từ thư mục gốc. Mỗi lệnh `--schedule` chạy liên tục trong một terminal riêng; chỉ chọn một nơi chạy lịch cho cùng dịch vụ.
 
-```powershell
-.\.venv\Scripts\python.exe -m eda.main --days 28
+| Công việc | Chạy một lần | Chạy theo lịch |
+| --- | --- | --- |
+| Thu thập | `.venv\Scripts\python.exe -m ingestion.main --once` | `.venv\Scripts\python.exe -m ingestion.main --schedule --interval-minutes 5` |
+| Phân tích | `.venv\Scripts\python.exe -m analysis.main --once` | `.venv\Scripts\python.exe -m analysis.main --schedule` |
+| Phân nhóm | `.venv\Scripts\python.exe -m clustering.main --once` | `.venv\Scripts\python.exe -m clustering.main --schedule` |
+| Dự báo và đối chiếu | `.venv\Scripts\python.exe -m prediction.main --once` | `.venv\Scripts\python.exe -m prediction.main --schedule` |
+
+Thu thập trong lệnh trên, phân tích và dự báo chạy mỗi 5 phút. Phân nhóm chạy hằng ngày lúc 02:00 theo New York. Lịch dừng khi đóng tiến trình hoặc tắt máy. Mốc thu thập trong quá khứ được mô tả riêng trong [config/sampling_schedule.json](config/sampling_schedule.json) để tính độ phủ đúng với từng giai đoạn.
+
+Phân tích, phân nhóm và dự báo có chế độ `--preview` để tính thử, xuất kết quả cục bộ mà không công bố vào database. Huấn luyện mô hình là tác vụ riêng:
+
+```bat
+.venv\Scripts\python.exe -m prediction.main --train
 ```
 
-Lệnh chỉ đọc database, xuất báo cáo vào `artifacts/eda/`. Mở `report.html` ở đường dẫn log hoặc vào **Phân tích & phân nhóm → Khám phá dữ liệu (EDA)** trên web. API đọc báo cáo hoàn tất gần nhất đúng nguồn tại máy chạy API.
+## Hai loại dự báo
 
-Báo cáo có trung bình, trung vị, độ lệch chuẩn, giá trị phổ biến, độ phủ, dữ liệu thiếu, ngoại lệ, phân phối, tương quan và so sánh chuẩn hóa. Cờ ngoại lệ chỉ để xem xét, không tự xóa mẫu. Tham số chuẩn hóa chỉ tính từ tập huấn luyện. Biểu đồ xuất mới có tiêu đề, nhãn trục, chú giải và thứ trong tuần bằng tiếng Việt.
+| Nội dung | Sau 30 phút | Ngày mai |
+| --- | --- | --- |
+| Mục tiêu | Thời điểm mẫu xe đầu vào + 30 phút | Từng giờ của ngày kế tiếp theo New York |
+| Phương pháp | Random Forest với đặc trưng xe, biến động gần đây, thời gian và thời tiết; có mô hình cơ sở đối chứng | Chọn theo trạm giữa các phương pháp theo lịch và phương pháp kết hợp mức xe, xu hướng gần đây |
+| Đối chiếu | Ghép dự báo với mẫu thực tế ở thời điểm mục tiêu | Chấm sau khi giờ mục tiêu kết thúc và đủ độ phủ mẫu thực tế |
+| Giao diện | Thẻ dự báo và trang lịch sử riêng của trạm | Biểu đồ từng giờ và bảng chênh lệch của hôm qua |
 
-API tự kiểm tra dữ liệu mới khi khởi động và mỗi 15 phút, tạo báo cáo EDA trong tiến trình nền riêng (28 ngày, tối đa 200.000 mẫu). Web tải báo cáo hoàn tất mỗi phút. Nếu dữ liệu không đổi thì bỏ qua; thêm lịch sử hoặc thời tiết sẽ làm báo cáo được tạo lại. Báo cáo cũ vẫn dùng được nếu lần tạo mới lỗi. Đặt `EDA_AUTO_UPDATE=false` để tắt; `API_EDA_REPORT_DIR` xác định nơi lưu. Chỉ hoạt động khi API đang chạy; không tự triển khai lên GitHub.
+Số xe dự báo hiển thị được làm tròn. Việc đánh giá mô hình dùng giá trị gốc để tránh mất thông tin sai số.
 
-Riêng dự báo ngày mai được Prediction phát hành một lần mỗi ngày New York và lưu trong `luot_chay_dich_vu` với loại `day_ahead`. Worker tự chấm các giờ đã kết thúc khi đủ 80% mẫu thật; web chỉ đọc qua `/api/eda/day-ahead`, tách sai số thực tế khỏi kiểm thử lịch sử. Có thể chạy riêng bằng `python -m prediction.main --day-ahead`, hoặc bật `--day-ahead-schedule` để kiểm tra mỗi năm phút; lịch Prediction thường cũng đã tích hợp bước này. Khi chuyển máy, sao chép cả thư mục EDA gồm HTML, JSON, CSV và ảnh để giữ các báo cáo cũ. Xem [EDA](docs/EDA.md).
+Mô hình thời tiết đã được kích hoạt theo chế độ thử nghiệm. Lần đánh giá lưu ngày **16/11/2026**, trên cùng 3.110 mẫu kiểm thử, ghi nhận MAE khoảng **1,88 xe** cho Random Forest có thời tiết và **1,52 xe** cho mô hình cơ sở giữ nguyên số xe. Đây là kết quả kiểm thử đã lưu, không phải chỉ số trực tiếp và chưa chứng minh mô hình thời tiết tốt hơn. Xem [báo cáo tổng hợp](PROJECT_REPORT.md).
 
-## 10. Kiểm tra và sao lưu
+Dự báo ngày mai kết hợp thứ và giờ cần dự báo, mức xe hiện tại, xu hướng gần đây và thay đổi so với tuần trước. Phương pháp được chọn bằng dữ liệu xác thực theo từng trạm, chỉ sử dụng thông tin có trước thời điểm phát hành.
 
-Kiểm tra dịch vụ trên Aiven bằng lệnh chỉ đọc:
+Bản dự báo được lưu một lần mỗi ngày New York, giữ nguyên bản đã phát hành và lưu kết quả đối chiếu riêng. Chỉ chấm giờ đã kết thúc, qua thời gian chờ thu thập và có ít nhất 80% mẫu thực tế hợp lệ. Giờ chưa đủ dữ liệu sẽ tiếp tục chờ.
 
-```powershell
-.\.venv\Scripts\python.exe -m scripts.audit_services
+Lịch Prediction thông thường đã tích hợp phát hành và chấm dự báo ngày mai. Nếu chỉ muốn chạy riêng phần này, chọn chạy một lần hoặc kiểm tra mỗi 5 phút:
+
+```bat
+.venv\Scripts\python.exe -m prediction.main --day-ahead
+.venv\Scripts\python.exe -m prediction.main --day-ahead-schedule
 ```
 
-Kết quả tại `artifacts/service_audit/database.json`: thời điểm chạy, độ mới từng trạm, mô hình và sai số dự đoán đã đối chiếu. Lệnh không kiểm tra lịch cron-job.org hoặc GitHub; cần xem riêng tab Actions và lịch bên ngoài.
+Dự báo ngày mai không sử dụng trực tiếp mô hình thời tiết của mục tiêu 30 phút.
 
-Bronze trên GitHub được lưu thành artifact từng lượt, hiện giữ **7 ngày**. Silver trong Aiven không tự mất sau 7 ngày, nhưng không thay thế phản hồi gốc. Tải Bronze trước khi hết hạn và sao lưu MySQL riêng. Sau khi cài GitHub CLI và đăng nhập, tải hàng loạt từ thư mục gốc:
+## Báo cáo EDA
 
-```powershell
-powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\backup_github_bronze.ps1 -Repository bap-05/NewYorkBike
+Khi `EDA_AUTO_UPDATE=true`, API kiểm tra thay đổi dữ liệu khi khởi động và mỗi 15 phút. Nếu có thay đổi, tiến trình nền tạo báo cáo mới từ 28 ngày gần nhất, tối đa 200.000 mẫu. Giao diện kiểm tra báo cáo hoàn tất mỗi phút; báo cáo cũ vẫn được giữ nếu lần tạo mới thất bại.
+
+Để tạo thủ công:
+
+```bat
+.venv\Scripts\python.exe -m eda.main --days 28 --max-rows 200000
 ```
 
-Nếu dùng repository khác, thay `bap-05/NewYorkBike`. Tệp được lưu dưới `backups/bronze/`; manifest liên kết dữ liệu gốc với lượt thu trong database. Xem [cách lưu và đọc Bronze](docs/Bronze_Silver_Gold.md).
+Kết quả gồm HTML, JSON, CSV và ảnh biểu đồ trong `artifacts/eda/`. API đọc báo cáo hoàn tất gần nhất tại `API_EDA_REPORT_DIR`. Tự cập nhật chỉ hoạt động khi API đang chạy.
 
-## 11. Kiểm thử mã
+## Kiểm thử
 
 Từ thư mục gốc:
 
-```powershell
-.\.venv\Scripts\python.exe -m pytest -q
+```bat
+.venv\Scripts\python.exe -m pytest
 ```
 
 Từ thư mục `frontend`:
 
-```powershell
+```bat
 npm test
 npm run build
 ```
 
-Kiểm tra trình duyệt với API/database thật và báo cáo EDA đã tạo:
+Kiểm thử trình duyệt dùng Playwright. Xem cấu hình trong `frontend/playwright.config.js` để chuẩn bị môi trường:
 
-```powershell
+```bat
 npx playwright install chromium
 npm run test:browser
 ```
 
-Giữ FastAPI cổng 8000 hoạt động trước kiểm tra trình duyệt. Kiểm thử cô lập có thể dùng dữ liệu kiểm thử riêng; không tạo dữ liệu giả vào database vận hành.
+## Docker và GitHub Actions
 
-## 12. Thư mục chính và việc còn lại
+Docker Compose sử dụng MySQL/Aiven hiện có qua `.env`, không tạo một MySQL mới:
 
-```text
-NewYorkBike/
-├── frontend/              # React và kiểm thử trình duyệt
-├── services/
-│   ├── database-api/app/  # FastAPI chỉ đọc
-│   ├── data-ingestion/   # Thu thập, client API và lưu Bronze
-│   ├── data-analysis/    # Thống kê Gold; EDA trong eda/
-│   ├── clustering/       # Đặc trưng và phân nhóm trạm
-│   └── prediction/       # Dự đoán, đánh giá và huấn luyện riêng
-├── shared/                # Model, kết nối, thời gian và lịch dữ liệu dùng chung
-├── database/migrations/   # Migration Alembic
-├── config/                # Danh sách trạm và lịch thu thập lịch sử
-├── scripts/               # Kiểm tra, sao lưu và runner GitHub
-├── .github/workflows/     # Workflow độc lập cho bốn dịch vụ
-├── docs/                  # Yêu cầu, hướng dẫn và bằng chứng kiểm tra
-└── .env.example           # Mẫu cấu hình, không chứa bí mật thật
+```bat
+docker compose up --build database-api frontend
 ```
 
-**Sau khi đổi bố cục**, cài lại ánh xạ package bằng
-`.\.venv\Scripts\python.exe -m pip install -r requirements.txt`.
-Tên import và các lệnh `python -m ...` giữ nguyên. Khi dùng API tự nạp lại mã,
-chọn `--reload-dir services/database-api --reload-dir shared`.
-Docker, file cấu hình theo môi trường và các báo cáo gốc được giải thích trong
-[Tài liệu tổng hợp](PROJECT_REPORT.md).
+Website Docker chạy tại http://127.0.0.1:8080. Có thể gọi riêng một tác vụ, ví dụ:
 
-Các việc ưu tiên sau mốc kiểm tra 09/11/2026:
+```bat
+docker compose --profile jobs run --rm data-ingestion
+```
 
-1. Đưa bản sửa độ phủ vào nhánh thực sự chạy workflow và xác minh kết quả cloud.
-2. Xác minh lịch Clustering hằng ngày và điều kiện các trạm khi cửa sổ dịch sang ngày mới.
-3. Tiếp tục thu đủ dữ liệu, huấn luyện riêng khi đạt điều kiện, so sánh mô hình cơ sở với mô hình học máy có/không có thời tiết trên cùng tập đánh giá.
-4. Hoàn thiện sao lưu dài hạn, triển khai API và giao diện nếu cần đường dẫn trình diễn công khai.
+Các workflow trong `.github/workflows/` hỗ trợ chạy thủ công và theo lịch, dùng secrets/variables của repository thay cho `.env` trên máy cá nhân. Lịch cloud được cấu hình riêng với lịch CLI; xem [hướng dẫn GitHub Actions và Aiven](docs/Deploy_GitHub_Actions_Aiven.md).
 
-Tài liệu chi tiết: [Tài liệu tổng hợp](PROJECT_REPORT.md) · [Analysis](docs/Data_Analysis.md) · [Clustering](docs/Clustering.md) · [Prediction](docs/Prediction.md). Giữ thư mục `docs/` để còn hướng dẫn vận hành và bằng chứng phục vụ báo cáo đề tài.
+Bronze trên GitHub Actions được lưu bằng artifact với thời hạn 7 ngày. Cần sao lưu riêng nếu muốn giữ lâu hơn; dữ liệu MySQL và mô hình/báo cáo cục bộ không tự đi kèm repository.
 
-Bản báo cáo kỹ thuật và câu hỏi bảo vệ: [Tài liệu tổng hợp](PROJECT_REPORT.md).
+## Tài liệu
 
-
-## T?n b?ng v? c?t trong MySQL
-
-T? migration `0007_vietnamese_names`, c?c b?ng nghi?p v? d?ng t?n ti?ng Vi?t kh?ng d?u, v? d? `tram_xe`, `lich_su_so_xe`, `ket_qua_phan_tich`, `du_doan_so_xe`. Xem [b?ng ?nh x? v? c?ch truy v?n](docs/Ten_Bang_Tieng_Viet.md). T?n c? ???c gi? d??i d?ng VIEW t??ng th?ch cho c?c l?ch ?ang ch?y.
+- [Báo cáo tổng hợp đề tài](PROJECT_REPORT.md)
+- [Kết nối Aiven trên Windows](docs/Ket_Noi_Aiven_Windows.md)
+- [API](docs/FastAPI.md)
+- [Giao diện](frontend/README.md)
+- [Phân tích dữ liệu](docs/Data_Analysis.md)
+- [Báo cáo EDA](docs/EDA.md)
+- [Dự báo và đánh giá](docs/Prediction.md)
+- [Đánh giá dự báo ngày mai](docs/Day_Ahead_Evaluation.md)
