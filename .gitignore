@@ -46,6 +46,7 @@ logs/
 
 # Frontend dependencies and build output
 node_modules/
+.vite/
 dist/
 coverage/
 playwright-report/
