@@ -4,3 +4,17 @@ PyMySQL[rsa]>=1.1.1,<2
 httpx>=0.28,<0.29
 python-dotenv>=1.0.1,<2
 tzdata>=2024.1
+# API and web server
+fastapi>=0.115,<1
+uvicorn>=0.34,<1
+# Analysis, clustering, training and historical data preparation
+scikit-learn>=1.7,<1.8
+pandas>=2.2,<3
+numpy>=2,<3
+pyarrow>=18,<27
+matplotlib>=3.9,<4
+seaborn>=0.13,<0.14
+# Tests
+pytest>=8.3,<10
+# Editable package mapping keeps CLI/import names stable after moving into services/.
+-e .

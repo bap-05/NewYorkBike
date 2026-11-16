@@ -1,0 +1,42 @@
+# Dùng MySQL/Aiven hiện có; worker chỉ chạy khi được gọi rõ ràng.
+x-python: &python
+  build:
+    context: .
+    dockerfile: services/Dockerfile
+  image: newyorkbike-python:local
+  env_file: .env
+  volumes:
+    - ./certs:/app/certs:ro
+    - ./data:/app/data
+    - ./artifacts:/app/artifacts
+services:
+  database-api:
+    <<: *python
+    ports: ["127.0.0.1:8000:8000"]
+    volumes:
+      - ./certs:/app/certs:ro
+      - ./artifacts:/app/artifacts:ro
+      # EDA background generator publishes snapshots here; other artifacts stay read-only.
+      - ./artifacts/eda:/app/artifacts/eda
+  frontend:
+    build:
+      context: .
+      dockerfile: frontend/Dockerfile
+    ports: ["127.0.0.1:8080:80"]
+    depends_on: [database-api]
+  data-ingestion:
+    <<: *python
+    profiles: [jobs]
+    command: [python, -m, ingestion.main, --once]
+  data-analysis:
+    <<: *python
+    profiles: [jobs]
+    command: [python, -m, analysis.main, --once]
+  clustering:
+    <<: *python
+    profiles: [jobs]
+    command: [python, -m, clustering.main, --once]
+  prediction:
+    <<: *python
+    profiles: [jobs]
+    command: [python, -m, prediction.main, --once]

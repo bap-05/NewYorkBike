@@ -1,6 +1,12 @@
 # FastAPI — API đọc dữ liệu Citi Bike
 
-API ở `backend/app/`, dùng SQLAlchemy model và Aiven MySQL hiện có. Mỗi request
+EDA trên web: `GET /api/eda` và
+`GET /api/eda/reports/{report_id}/figures/{filename}`. Chỉ đọc report hoàn tất tại
+`API_EDA_REPORT_DIR` (mặc định artifacts/eda); không gọi database hoặc chạy EDA từ
+request này. Chỉ trả metadata/thống kê cho phép và PNG, không công bố HTML/CSV hay
+đường dẫn máy chủ. Xem [hướng dẫn EDA](EDA.md).
+
+API ở `services/database-api/app/`, dùng SQLAlchemy model và Aiven MySQL hiện có. Mỗi request
 dùng transaction READ ONLY, chỉ đọc Silver/Gold đã công bố. Không chạy collector,
 Analysis, Clustering, Prediction hoặc train bên trong API. Không tạo schema khi
 khởi động; yêu cầu database đã có `0006_prediction` hoặc revision kế thừa hợp lệ.
@@ -10,8 +16,8 @@ khởi động; yêu cầu database đã có `0006_prediction` hoặc revision k
 Mở terminal tại thư mục gốc `F:\126\NewYorkBike`, giữ `.env`/chứng chỉ CA hiện có:
 
 ```powershell
-.\.venv\Scripts\python.exe -m pip install -r requirements-api.txt
-.\.venv\Scripts\python.exe -m uvicorn backend.app.main:app --host 127.0.0.1 --port 8000
+.\.venv\Scripts\python.exe -m pip install -r requirements.txt
+.\.venv\Scripts\python.exe -m uvicorn backend.app.main:app --host 127.0.0.1 --port 8000 --log-level error --no-access-log
 ```
 
 Mở trình duyệt:
@@ -23,7 +29,8 @@ Mở trình duyệt:
 
 Muốn tự tải lại khi sửa code, thêm `--reload` cho môi trường phát triển. Terminal
 API cần mở; Ctrl+C để dừng. Đây là chạy local, chưa triển khai API lên server và
-chưa có giao diện React. API không cần proxy, không ảnh hưởng các lịch cloud hiện có.
+giao diện React chạy riêng ở `frontend/`, xem [hướng dẫn React](../frontend/README.md).
+API không cần proxy, không ảnh hưởng các lịch cloud hiện có.
 Không chạy migration lại chỉ vì thêm API hoặc tách file model.
 
 Có thể kiểm tra nhanh từ PowerShell khi server đang mở:
@@ -151,5 +158,5 @@ và [CORS](https://fastapi.tiangolo.com/tutorial/cors/) của tài liệu FastAP
   công, vẫn loại .env, certs, Bronze và môi trường Python.
 
 Bằng chứng: [api_verification.json](api_verification.json). Bố cục mới xem
-[Project_Structure.md](Project_Structure.md). Chưa push phần FastAPI hoặc triển
+[Tài liệu tổng hợp](../PROJECT_REPORT.md). Chưa push phần FastAPI hoặc triển
 khai lên server công khai trong lần chỉnh sửa này.

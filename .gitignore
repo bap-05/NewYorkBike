@@ -48,6 +48,8 @@ logs/
 node_modules/
 dist/
 coverage/
+playwright-report/
+test-results/
 
 # Deployment bundles generated at the project root
 /*.zip

@@ -122,6 +122,36 @@ def cluster(session,*,status='success',at=None):
     return row
 
 
+def test_history_estimates_opt_in_preserves_actual_zero_inactive_and_pagination(api,monkeypatch):
+    monkeypatch.setenv('ANALYSIS_EXPECTED_INTERVAL_SECONDS','300')
+    client,session,_=api
+    start=NOW.replace(hour=6,minute=40)
+    real=bike(session,start,0)
+    inactive=bike(session,start+timedelta(minutes=10),3,quality='inactive',renting=False)
+    for minutes in (0,5,10,15):
+        row=bike(session,start+timedelta(minutes=minutes),9,source='citibike_estimated',quality='missing',status='partial')
+        row.source_observed_at=None
+        row.is_installed=row.is_renting=None
+        run=session.get(CollectionRun,row.collection_run_id)
+        run.feed_metadata={'is_estimated':minutes!=15,'estimates':{'00001':{'method':'linear_interpolation'}}}
+    session.commit()
+    path='/api/stations/00001/history'
+    original=client.get(path).json()
+    assert [r['observation']['id'] for r in original['items']]==[real.id,inactive.id]
+    assert not any(r['is_estimated'] for r in original['items'])
+    response=client.get(path,params={'include_estimated':'true','limit':2})
+    assert response.status_code==200,response.text
+    combined=response.json()
+    assert combined['pagination']=={'total':3,'limit':2,'offset':0,'has_more':True}
+    assert combined['items'][0]['observation']['available_bikes']==0
+    estimate=combined['items'][1]
+    assert estimate['is_estimated'] and estimate['estimation_method']=='linear_interpolation'
+    assert estimate['observation']['quality_status']=='missing'
+    assert estimate['observation']['source_observed_at'] is None
+    last=client.get(path,params={'include_estimated':'true','offset':2}).json()['items'][0]
+    assert last['observation']['id']==inactive.id and not last['is_estimated']
+
+
 def test_liveness_readiness_docs_and_no_writes(api):
     client,session,_=api
     assert client.get('/health/live').json()=={'status':'ok'}
@@ -240,6 +270,28 @@ def test_forecast_baseline_label_no_model_artifact_or_features(api):
     assert result['item']['model']['kind']=='persistence'
     assert 'must-not-be-serialized' not in response.text
     assert 'features' not in result['item'] and 'artifact' not in result['item']['model']
+
+
+def test_weather_trial_exposes_evaluation_and_only_used_weather_features(api):
+    client,session,_=api
+    b=bike(session,NOW-timedelta(minutes=4),7)
+    p=forecast(session,b,status='ml')
+    p.reason=None
+    weather={'temperature':12.,'humidity':60.,'rain':0.,'wind_speed':2.}
+    p.features={'values':{'weather':weather,'private_training_value':'must-not-be-serialized'}}
+    model=session.get(ModelVersion,p.model_version_id)
+    model.kind='random_forest'
+    model.feature_config={'with_weather':True,'experimental':True}
+    model.metrics={'trial_evaluation':{'mae':1.5,'rmse':2.,'sample_count':100,
+        'baseline_mae':.9,'validation_mae':1.4,'private':'must-not-be-serialized'}}
+    session.commit()
+    response=client.get('/api/stations/00001/predictions/latest')
+    assert response.status_code==200
+    item=response.json()['item']
+    assert item['weather_inputs']==weather
+    assert item['model']['experimental'] is True and item['model']['with_weather'] is True
+    assert item['model']['evaluation']['mae']==1.5
+    assert 'must-not-be-serialized' not in response.text
 
 
 def test_unavailable_latest_does_not_fallback_to_old_baseline(api):

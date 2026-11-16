@@ -1,0 +1,16 @@
+{
+  "date": "2026-11-10",
+  "python_tests_passed": 296,
+  "frontend_unit_tests_passed": 7,
+  "browser_tests_passed": 4,
+  "frontend_build": "passed",
+  "package_imports_from_outside_workspace": "passed",
+  "service_cli_help": "passed for ingestion, analysis, eda, clustering, prediction",
+  "alembic_head": "0006_prediction",
+  "api_readiness": "ready; read_only",
+  "deployment_archive": "services and pyproject included; secrets excluded",
+  "docker": "configuration added; not built or run because Docker is not installed",
+  "database_mutations": false,
+  "cloud_deployment": false,
+  "git_push": false
+}

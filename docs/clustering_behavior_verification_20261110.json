@@ -1,0 +1,27 @@
+{
+  "clustering_run_id": 5,
+  "status": "success",
+  "run_date": "2026-11-10",
+  "version": "clustering-v2-cadence",
+  "groups": 3,
+  "silhouette": 0.4283810266216838,
+  "window_start": {
+    "utc": "2026-11-03T05:00:00Z",
+    "local": "2026-11-03T00:00:00-05:00"
+  },
+  "window_end": {
+    "utc": "2026-11-10T05:00:00Z",
+    "local": "2026-11-10T00:00:00-05:00"
+  },
+  "published_members": 10,
+  "group_sizes": {
+    "1": 2,
+    "2": 5,
+    "3": 3
+  },
+  "database_publication_verified": true,
+  "api_verified": true,
+  "browser_verified": true,
+  "screenshot": "artifacts/frontend/clustering-behavior.png",
+  "raw_observations_deleted": false
+}

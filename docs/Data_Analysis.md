@@ -1,5 +1,22 @@
 # Data Analysis độc lập cho Citi Bike
 
+**Cập nhật 13/11/2026 — tính toán với dữ liệu bù:**
+`ANALYSIS_INCLUDE_ESTIMATED=true` (mặc định khi chạy CLI) cho phép các chỉ số
+mean/min/max/độ lệch chuẩn số xe, tỷ lệ hết/ít xe và biến động dùng thêm các mẫu
+`citibike_estimated` có nguồn gốc được đánh dấu. Chỉ bù mốc không có mẫu thật;
+mẫu thật không hợp lệ/ngừng thuê không bị thay thế. Không sửa quan sát gốc.
+Kết quả dùng dữ liệu bù lưu `dimensions.uses_estimated_data`, số mẫu ước lượng,
+độ phủ và chất lượng riêng của dữ liệu thật. `coverage` của các chỉ số này là
+độ phủ đầu vào kết hợp, không phải độ phủ quan sát thật. Chỉ số chất lượng nguồn,
+thời tiết và tương quan vẫn chỉ dùng quan sát thật. Cấu hình được lưu với hash
+riêng, giữ kết quả tính trước đó. Chạy lại bằng `python -m analysis.main --once`;
+đặt biến trên thành `false` để tính hoàn toàn bằng quan sát thật.
+
+**Cập nhật 09/11/2026:** độ phủ dùng lịch có phiên bản, giữ nhịp 30 phút trước
+06:25 New York ngày 09/11 và 5 phút từ mốc đó. Xem
+[quy tắc chuyển lịch, preview và cách áp dụng](Do_Phu_Lich_Thu_Thap.md).
+Các mô tả chu kỳ đơn ở tài liệu cũ bên dưới là cấu hình lịch sử.
+
 Ngày 07/11/2026. Đã viết service và migration, kiểm thử tự động và chạy tính toán
 trên dữ liệu thật Aiven ở chế độ chỉ đọc. **Chưa nâng Aiven lên 0004_analysis,
 chưa ghi Gold trên Aiven, chưa bật lịch hoặc đẩy mã lên GitHub.**
@@ -209,7 +226,7 @@ snapshot bất biến. Dữ liệu/model/forecast chưa có không được tạ
 
 | Nhóm | File |
 | --- | --- |
-| Service | analysis/__init__.py, analysis/config.py, analysis/dataset.py, analysis/statistics.py, analysis/worker.py, analysis/main.py |
+| Service | services/data-analysis/__init__.py, services/data-analysis/config.py, services/data-analysis/dataset.py, services/data-analysis/statistics.py, services/data-analysis/worker.py, services/data-analysis/main.py |
 | Model/kết nối/đọc dữ liệu | shared/models/__init__.py, shared/database.py, shared/config.py, shared/schema.py, shared/repositories/silver.py, shared/repositories/gold.py |
 | Migration/hợp đồng | database/migrations/versions/0004_analysis.py, database/data_layers.json |
 | CI/vận hành | scripts/run_github_collection.py, scripts/run_github_analysis.py, .github/workflows/citibike-analysis.yml, deploy/citibike-analysis.service, deploy/package-windows.ps1 |

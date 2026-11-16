@@ -305,6 +305,8 @@ def test_schedule_runs_separately_without_training(monkeypatch,prediction_settin
     monkeypatch.setattr(main,'make_engine',lambda _:Engine())
     monkeypatch.setattr(main,'service_session',service)
     monkeypatch.setattr(main,'predict_once',predict)
+    monkeypatch.setattr(main,'publish_day_ahead',lambda *a:None)
+    monkeypatch.setattr(main,'evaluate_day_ahead',lambda *a:None)
     monkeypatch.setattr(main,'train_once',lambda *a:pytest.fail('Prediction scheduler must never train'))
     monkeypatch.setattr(main,'utcnow',lambda:clock[0])
     monkeypatch.setattr(main.time,'sleep',lambda seconds:clock.__setitem__(0,clock[0]+timedelta(seconds=seconds)))

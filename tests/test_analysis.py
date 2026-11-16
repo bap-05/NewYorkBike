@@ -193,6 +193,31 @@ def test_failed_publication_rolls_back_gold_and_records_safe_failure(session, an
     assert retried.id == failed.id and retried.attempt_count == 2 and retried.status == "success"
 
 
+def test_marked_estimates_recompute_bike_metrics_without_changing_actual_quality_or_weather(session, analysis_settings):
+    from analysis.dataset import calculate_results
+    observation(session,CUTOFF-timedelta(hours=2),0)
+    observation(session,CUTOFF-timedelta(minutes=30),12)
+    derived=[]
+    for minutes,count in ((120,99),(90,4),(60,8)):
+        b,_=observation(session,CUTOFF-timedelta(minutes=minutes),count,
+            source='citibike_estimated',quality='missing',status='partial',installed=None,renting=None)
+        run=session.get(CollectionRun,b.collection_run_id)
+        run.feed_metadata={'is_estimated':True,'estimates':{'unit-test-only':{'method':'linear_interpolation'}}}
+        derived.append(b)
+    session.commit()
+    rows,_=calculate_results(session,analysis_settings,AnalysisOptions(window_days=1,include_estimated=True),CUTOFF)
+    daily={r['metric_name']:r for r in rows if r['aggregation']=='day'}
+    mean=daily['available_bikes_mean']
+    assert mean['metric_value']==6 and mean['sample_count']==4
+    assert mean['quality_status']=='ok' and mean['coverage']==1
+    assert mean['dimensions']['actual_coverage']==.5
+    assert mean['dimensions']['estimated_sample_count']==2
+    assert daily['available_bikes_stddev']['metric_value']==pytest.approx(20**.5)
+    assert daily['missing_slot_ratio']['metric_value']==.5
+    assert daily['temperature_mean_c']['metric_value'] is None
+    assert all(b.quality_status=='missing' and b.is_renting is None for b in derived)
+
+
 def test_no_observations_skips_without_fake_statistics(session, analysis_settings):
     result = analyze(session, analysis_settings)
     assert result.status == "skipped" and result.result_count == 0

@@ -32,6 +32,41 @@ def test_invalid_json():
             get_json(http, "https://test.invalid", source="test")
 
 
+@pytest.mark.parametrize('message,expected', [
+    ('407 Proxy Authentication Required private-test-password', 'proxy HTTP 407'),
+    ('502 Bad Gateway private-test-password', 'proxy connection failed'),
+])
+def test_https_proxy_connect_failure_is_specific_bounded_and_redacted(message, expected):
+    calls = []
+    def handler(request):
+        calls.append(request)
+        raise httpx.ProxyError(message, request=request)
+    with httpx.Client(transport=httpx.MockTransport(handler)) as client:
+        with pytest.raises(SourceError, match=expected) as error:
+            get_json(client, 'https://test.invalid', source='citibike', attempts=3, backoff=0)
+    assert len(calls) == 3
+    assert 'private-test-password' not in str(error.value)
+    assert 'after 3 attempts' in str(error.value)
+
+
+@pytest.mark.parametrize('exception,expected', [
+    (httpx.ConnectTimeout, 'connection timeout'),
+    (httpx.ReadTimeout, 'response timeout'),
+    (httpx.ConnectError, 'connection failed'),
+    (httpx.ReadError, 'response read failed'),
+])
+def test_network_categories_are_bounded_and_redacted(exception, expected):
+    calls = []
+    def handler(request):
+        calls.append(request)
+        raise exception('private-test-password', request=request)
+    with httpx.Client(transport=httpx.MockTransport(handler)) as client:
+        with pytest.raises(SourceError, match=expected) as error:
+            get_json(client, 'https://test.invalid', source='citibike', attempts=3, backoff=0)
+    assert len(calls) == 3
+    assert 'private-test-password' not in str(error.value)
+
+
 def test_weather_preserves_nulls_and_units(settings, weather_payload, now):
     weather_payload["current"]["rain"] = None
 

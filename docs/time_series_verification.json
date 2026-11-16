@@ -1,0 +1,34 @@
+{
+  "checked_at_utc": "2026-11-10T07:54:15.547459+00:00",
+  "database_written": false,
+  "mysql_read_only_enforced": true,
+  "production_ml_model_trained": false,
+  "report_id": "time_patterns_verified_20261110",
+  "raw_rows": 5565,
+  "usable_bike_rows": 5543,
+  "figures": 22,
+  "day_ahead_items": 10,
+  "day_ahead_available": 10,
+  "day_ahead_target_dates": [
+    "2026-11-11"
+  ],
+  "day_ahead_evaluation_samples": [
+    1
+  ],
+  "tests": {
+    "python_full_suite_passed": 282,
+    "browser_passed": 3,
+    "frontend_unit_passed": 5,
+    "frontend_build": "passed"
+  },
+  "limitations": [
+    "Trend and seasonality require two complete covered periods; no curves invented.",
+    "Next-day baseline and rule-based availability classes, not trained ML or trip demand.",
+    "Daily EDA report refresh is manual; no new background schedule started."
+  ],
+  "figures_checked": [
+    "scatter_week.png",
+    "weekly_seasonality.png"
+  ],
+  "browser_screenshot": "artifacts/frontend/day-ahead-desktop.png"
+}

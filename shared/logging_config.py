@@ -1,4 +1,4 @@
-"""Human-facing service logs use New York time, independent of the Windows timezone."""
+"""Only report errors to the terminal; never create application log files."""
 from datetime import datetime
 import logging
 from zoneinfo import ZoneInfo
@@ -22,5 +22,7 @@ class ZonedFormatter(logging.Formatter):
 def configure_logging(timezone_name=DISPLAY_TIMEZONE):
     handler = logging.StreamHandler()
     handler.setFormatter(ZonedFormatter(timezone_name))
-    logging.basicConfig(level=logging.INFO, handlers=[handler], force=True)
-    logging.getLogger("httpx").setLevel(logging.WARNING)
+    logging.basicConfig(level=logging.ERROR, handlers=[handler], force=True)
+    for name in ("httpx", "httpcore", "alembic", "uvicorn", "uvicorn.error"):
+        logging.getLogger(name).setLevel(logging.ERROR)
+    logging.getLogger("uvicorn.access").disabled = True

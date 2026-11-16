@@ -1,0 +1,56 @@
+{
+  "checked_at_utc": "2026-11-10T10:07:45.064655+00:00",
+  "database_written": false,
+  "source_api_calls": false,
+  "calendar_selections": [
+    {
+      "period": "day",
+      "anchor": "2026-11-03",
+      "timezone": "America/New_York",
+      "range_start_utc": "2026-11-03T05:00:00Z",
+      "range_end_utc": "2026-11-04T05:00:00Z",
+      "partial_period": false,
+      "raw_rows": 480,
+      "stations": 10,
+      "points": 480
+    },
+    {
+      "period": "week",
+      "anchor": "2026-W45",
+      "timezone": "America/New_York",
+      "range_start_utc": "2026-11-02T05:00:00Z",
+      "range_end_utc": "2026-11-09T05:00:00Z",
+      "partial_period": false,
+      "raw_rows": 3085,
+      "stations": 10,
+      "points": 3065
+    },
+    {
+      "period": "month",
+      "anchor": "2026-11",
+      "timezone": "America/New_York",
+      "range_start_utc": "2026-11-01T04:00:00Z",
+      "range_end_utc": "2026-12-01T05:00:00Z",
+      "partial_period": true,
+      "raw_rows": 5835,
+      "stations": 10,
+      "points": 5815
+    }
+  ],
+  "tests": {
+    "python_full_suite": 296,
+    "frontend_unit": 7,
+    "browser_suite": 4,
+    "build": "passed"
+  },
+  "verified_rules": [
+    "New York civil boundaries including 23/25-hour DST days",
+    "Source and publication filtering",
+    "Zero retained and unusable samples left null",
+    "Missing scheduled samples break lines",
+    "Specific station selection",
+    "Empty period shows no data",
+    "Current period clipped to now"
+  ],
+  "screenshot": "artifacts/frontend/calendar-week-picker.png"
+}

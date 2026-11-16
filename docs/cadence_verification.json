@@ -1,0 +1,28 @@
+{
+  "verified_at_utc": "2026-11-09T11:32:14.524021+00:00",
+  "database_written": false,
+  "transition_confirmed_by_user": "2026-11-09T11:25:00+00:00",
+  "analysis_input_rows": 2990,
+  "analysis_station_count": 10,
+  "analysis_recent_window_examples": [
+    {
+      "window_start": "2026-11-09 10:00:00+00:00",
+      "expected_sample_count": 2,
+      "sample_count": 2,
+      "coverage": 1.0
+    },
+    {
+      "window_start": "2026-11-09 11:00:00+00:00",
+      "expected_sample_count": 2,
+      "sample_count": 2,
+      "coverage": 1.0
+    }
+  ],
+  "clustering_status": "insufficient_data",
+  "clustering_eligible_stations": 0,
+  "clustering_expected_samples_per_station": 336,
+  "cloud_code_updated": false,
+  "analysis_preview_cutoff_utc": "2026-11-09T11:30:00+00:00",
+  "python_tests_passed": 254,
+  "migration_required": false
+}

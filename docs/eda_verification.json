@@ -1,0 +1,35 @@
+{
+  "generated_at_utc": "2026-11-09T11:56:01.295978+00:00",
+  "window_start_utc": "2026-10-12T11:52:34.112715+00:00",
+  "cutoff_utc": "2026-11-09T11:52:34.112715+00:00",
+  "source": "citibike",
+  "station_count": 10,
+  "raw_rows": 3275,
+  "deduplicated_rows": 3255,
+  "usable_bike_rows": 3253,
+  "usable_bikes_without_usable_weather": 6,
+  "outlier_flag_count": 149,
+  "outlier_observation_count": 149,
+  "database_written": false,
+  "mysql_read_only_enforced": true,
+  "model_trained": false,
+  "python_tests_passed": 262,
+  "figure_count": 11,
+  "report_path": "artifacts\\eda\\citibike_20261109\\report.html",
+  "cloud_updated": false,
+  "html_browser_check": {
+    "image_count": 11,
+    "table_count": 4,
+    "runtime_errors": []
+  },
+  "dependencies_check": "pip check passed",
+  "report_generation_does_not_change_prediction_or_clustering_models": true,
+  "web_integration_checks": {
+    "api_tests_passed": 39,
+    "browser_tests_passed": 2,
+    "charts_and_station_selector_verified": true,
+    "mobile_document_overflow": false,
+    "screenshot": "artifacts/frontend/eda-web.png",
+    "deployment_tested": false
+  }
+}

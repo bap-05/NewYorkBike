@@ -1,0 +1,55 @@
+{
+  "generated_at_utc": "2026-11-10T09:06:05.786645+00:00",
+  "report_id": "hourly_tomorrow_20261110",
+  "database_written": false,
+  "mysql_read_only_enforced": true,
+  "stations": 10,
+  "hourly_rows": 240,
+  "statuses": {
+    "available": 240
+  },
+  "classes": {
+    "high": 35,
+    "balanced": 192,
+    "low": 13
+  },
+  "risk_hours_by_station": {
+    "E 5 St & Ave A": [
+      "13:00 (-0500)",
+      "14:00 (-0500)",
+      "15:00 (-0500)",
+      "16:00 (-0500)"
+    ],
+    "Perry St & Greenwich Ave": [],
+    "E 54 St & 1 Ave": [],
+    "Peck Slip & South St": [],
+    "8 Ave & W 49 St": [
+      "00:00 (-0500)",
+      "01:00 (-0500)",
+      "02:00 (-0500)",
+      "03:00 (-0500)",
+      "04:00 (-0500)",
+      "05:00 (-0500)",
+      "06:00 (-0500)",
+      "07:00 (-0500)",
+      "23:00 (-0500)"
+    ],
+    "Union Ave & Wallabout St": [],
+    "E 84 St & 1 Ave": [],
+    "Riverside Dr & W 82 St": [],
+    "Central Park N & Adam Clayton Powell Blvd": [],
+    "Kent St & McGuinness Blvd": []
+  },
+  "tests": {
+    "python_passed": 284,
+    "browser_passed": 3,
+    "build": "passed"
+  },
+  "limitations": [
+    "Same-hour historical baseline, not trained ML or trip demand.",
+    "At least 5 matching covered hours in 7 completed covered days.",
+    "Missing hours are not counted as safe.",
+    "Manual EDA refresh; no new background schedule started."
+  ],
+  "screenshot": "artifacts/frontend/hourly-tomorrow-low-hours.png"
+}

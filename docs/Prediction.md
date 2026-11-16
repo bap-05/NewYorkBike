@@ -1,15 +1,94 @@
 # Prediction — dự đoán số xe có thể thuê sau 30 phút
 
+## Huấn luyện từ Parquet lịch sử tháng 10
+
+```powershell
+.\.venv\Scripts\python.exe -m pip install -r requirements.txt
+.\.venv\Scripts\python.exe -m scripts.train_historical_prediction --input-dir "F:\126\KDPLDL" --start-date 2026-10-01 --end-date 2026-10-31
+```
+
+Khoảng ngày tính theo UTC, ngày kết thúc được tính trọn ngày. Script đọc đúng
+trạng thái số xe tại trạm, dùng epoch giây `polled_at` làm thời điểm snapshot được
+thu nhận, giữ `ts` và `last_reported` để kiểm tra độ mới (không quá 600 giây,
+không ở tương lai). Chọn mẫu mới nhất trong mỗi ô 5 phút. Không lấy mẫu hợp lệ cũ
+để thay một mẫu mới đang ngừng cho thuê. Không ghi các file ngoài vào bảng quan
+sát đang thu realtime.
+
+Thời tiết lấy qua proxy được cấu hình từ Open-Meteo Historical Weather API, model
+ERA5, tại tọa độ từng trạm: nhiệt độ °C, độ ẩm %, mưa mm/giờ trước và gió m/s.
+Cache chứa nguyên phản hồi, tham số, thời điểm tải và vị trí lưới trả về. Ghép lùi
+về giờ thời tiết gần nhất, không lấy giờ tương lai hoặc nội suy tương lai.
+ERA5 là **tái phân tích hồi cứu**, không phải bản thời tiết đã được hệ thống thu
+trực tiếp tại thời điểm quá khứ; không giả thời điểm tải hiện tại thành quá khứ.
+Mưa giờ có khoảng tổng hợp khác với trường mưa `current` đang dùng khi phục vụ.
+
+Đáp án là snapshot thực sau 30 phút, cho phép sai lệch tối đa 120 giây; phải có
+mẫu trước đó 30 phút hợp lệ. Không bù nhãn thiếu bằng ước lượng. Tách thời gian
+70%/15%/15%, loại mẫu có nhãn vượt ranh giới tập; chọn độ sâu 4/8/12 bằng MAE tập
+xác thực, chấm tập kiểm thử giữ riêng. So sánh baseline và hai mô hình trên cùng
+tập mẫu có đủ thời tiết.
+
+Kết quả nằm trong `artifacts/historical_prediction/<thời điểm>/`: các Parquet đã
+lọc, thời tiết đã ghép, cặp huấn luyện, mô hình JSON, `report.json` và `report.md`
+có MAE/RMSE cùng sai số từng trạm. SHA256 các file gốc được lưu trong báo cáo.
+Mô hình chỉ fit trên tập train để tái lập đánh giá; không tự kích hoạt trên web.
+Để phục vụ trực tiếp cần kiểm chứng riêng với thời tiết realtime và dữ liệu mới.
+
+### Nhập bộ lịch sử đã chuẩn hóa vào Aiven
+
+```powershell
+.\.venv\Scripts\python.exe -m scripts.import_historical_prediction --dataset artifacts/historical_prediction/20261113T132427Z
+.\.venv\Scripts\python.exe -m scripts.import_historical_prediction --dataset artifacts/historical_prediction/20261113T132427Z --apply
+```
+
+Lệnh đầu chỉ kiểm tra; lệnh thứ hai ghi một giao dịch nguyên tử vào các bảng
+hiện có. Nguồn xe là `citibike_historical`, nguồn thời tiết là `open-meteo-era5`.
+Các trạm lịch sử có `is_monitored=false` để giữ số trạm realtime đang theo dõi.
+Lưu cả mốc hợp lệ lẫn mốc bị loại, với nhãn valid/inactive/stale/invalid tương ứng.
+`sampled_at` và `collected_at` của xe giữ thời điểm `polled_at` trong file gốc;
+`source_observed_at` giữ `last_reported`. Thời điểm nhập thực tế nằm ở run và
+`feed_metadata.imported_at`; thời tiết giữ đúng thời điểm tải API hiện tại.
+Không giả rằng thời tiết tái phân tích đã được hệ thống thu trong tháng 10.
+
+Script kiểm tra SHA256 bộ chuẩn hóa và cache thời tiết, lưu manifest ở run đầu,
+bảo vệ bằng khóa nhập riêng, bỏ qua khi dữ liệu đã nhập giống hệt. Nếu trùng
+khoảng thời gian với bộ khác hoặc khác giá trị đang lưu, script dừng, không ghi
+đè. Các truy vấn mặc định source `citibike` tiếp tục chỉ đọc nguồn realtime.
+Huấn luyện lịch sử dùng quy trình offline ở trên; không đổi nguồn thu realtime
+thành `citibike_historical` để chạy lại lịch sử như lượt phát hành trực tiếp.
+
+```sql
+SELECT quality_status, COUNT(*) AS so_mau,
+       MIN(sampled_at) AS tu_luc, MAX(sampled_at) AS den_luc
+FROM bike_observations
+WHERE source = 'citibike_historical'
+GROUP BY quality_status;
+```
+
 Service Python độc lập, đọc Silver và model trên MySQL. Không gọi GBFS/Open-Meteo,
 không dùng proxy, không chạy collector/Analysis/Clustering bên trong. Huấn luyện
 là lệnh riêng; vòng Prediction 5 phút **không huấn luyện lại mô hình**.
 
 ## Chạy trên Windows
 
+Để đánh giá riêng ảnh hưởng của thời tiết trên cùng một tập mẫu thật:
+
+```powershell
+.\.venv\Scripts\python.exe -m scripts.evaluate_weather_prediction
+```
+
+Báo cáo `artifacts/prediction_weather/<thời điểm>/report.md` và `report.json`
+so sánh persistence, Random Forest không thời tiết và có thời tiết bằng MAE/RMSE,
+gồm sai số từng trạm. Chọn độ sâu trên tập xác thực rồi đánh giá tập kiểm thử
+theo thời gian, loại nhãn vượt ranh giới tập. Khi có ít nhất 7 ngày và đủ số mẫu,
+có thể chạy thử nghiệm cục bộ; kết quả ghi rõ `experimental` nếu chưa đạt ngưỡng
+ngày sản xuất. Không thay ngưỡng 14 ngày, không ghi DB, không kích hoạt mô hình;
+hai file mô hình cục bộ chỉ được fit trên tập train để tái lập sai số.
+
 Tại `F:\126\NewYorkBike`, giữ nguyên `.env` MySQL/CA hiện có:
 
 ```powershell
-.\.venv\Scripts\python.exe -m pip install -r requirements-prediction.txt
+.\.venv\Scripts\python.exe -m pip install -r requirements.txt
 .\.venv\Scripts\python.exe -m prediction.main --preview
 ```
 
@@ -203,10 +282,10 @@ MySQL thật hoặc runner Prediction thật; chưa bật lịch. Bằng chứng
 
 File thêm/sửa:
 
-- `prediction/`: config, data, learning, registry, training, worker và main.
+- `services/prediction/`: config, data, learning, registry, training, worker và main.
 - `shared/models/__init__.py`, `shared/repositories/gold.py`, `shared/database.py`.
 - `database/migrations/versions/0006_prediction.py`, `database/data_layers.json`.
-- `requirements-prediction.txt`, `requirements-dev.txt`, `.env.example`.
+- `requirements.txt`, `.env.example`.
 - `.github/workflows/citibike-prediction.yml`, `scripts/run_github_prediction.py`.
 - `tests/test_prediction.py`, `tests/test_migrations.py`, `tests/test_schema_compatibility.py`.
 - README, hướng dẫn này, báo cáo kiểm tra, tài liệu Bronze/Silver/Gold và hai bản

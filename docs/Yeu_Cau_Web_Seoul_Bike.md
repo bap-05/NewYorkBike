@@ -384,59 +384,34 @@ flowchart TD
 ### 11.1. Cấu trúc thư mục
 
 ```text
-seoul-bike/
-├── frontend/                 # React
-│   └── src/
-│       ├── components/       # common, charts, map
-│       ├── pages/            # Overview, Stations, StationDetail, Analysis, Clusters, Admin
-│       ├── services/         # HTTP client gọi FastAPI
-│       ├── hooks/
-│       └── styles/
-├── api/                      # FastAPI, chạy riêng
-│   ├── main.py
-│   ├── routes/
-│   ├── schemas/
-│   ├── services/             # Nghiệp vụ phục vụ thao tác web
-│   └── dependencies.py
-├── ingestion/                # Collector, chạy riêng
-│   ├── main.py
-│   ├── clients/              # citibike_client.py, weather_client.py
-│   ├── normalizer.py
-│   └── collector.py
-├── analysis/                 # Thống kê, chạy riêng
-│   ├── main.py
-│   ├── statistics.py
-│   └── weather_analysis.py
-├── clustering/               # Phân cụm, chạy riêng
-│   ├── main.py
-│   ├── features.py
-│   └── pipeline.py
-├── prediction/               # Suy luận, chạy riêng
-│   ├── main.py
-│   ├── features.py
-│   ├── predictor.py
-│   └── baseline.py
-├── ml/                       # Tác vụ huấn luyện/đánh giá riêng
-│   ├── prepare_data.py
-│   ├── train.py
-│   └── evaluate.py
-├── shared/                   # Không chạy như service riêng
-│   ├── config.py
-│   ├── database.py
-│   ├── logging_config.py
-│   ├── models/
-│   └── repositories/
-├── database/                 # schema.sql, migrations/, seeds/
-├── data/                     # raw/, processed/ — dữ liệu tạm
-├── artifacts/                # models/, metrics/
-├── docs/
-├── tests/
-├── scripts/
-├── logs/
-├── .env.example
-├── .gitignore
-├── requirements.txt
-└── README.md
+NewYorkBike/
+  config/
+    init.sql
+    sampling_schedule.json
+  docs/
+  frontend/
+  services/
+    clustering/
+    data-analysis/
+      eda/
+    data-ingestion/
+    database-api/
+      app/
+    prediction/
+    Dockerfile
+  shared/
+  database/migrations/
+  scripts/
+  deploy/
+  tests/
+  .github/workflows/
+  .env
+  .env.example
+  .gitignore
+  docker-compose.yml
+  pyproject.toml
+  requirements*.txt
+  README.md
 ```
 
 MySQL là nơi lưu dữ liệu chính; data/ phục vụ xử lý tạm. shared/ chứa code dùng chung, không gọi khởi chạy service khác. Tách schema API khỏi model database. Không commit .env, log, dữ liệu riêng và mô hình lớn.
@@ -609,7 +584,7 @@ Các quyết định chưa chốt không cản trở việc kiểm tra API và b
   Prediction và ML chưa tồn tại trong workspace; sơ đồ và các màn hình là yêu cầu
   cho bước tiếp theo. Không có dữ liệu dự đoán hoặc kết quả mô hình giả.
 - Chỉ chạy collector một lần để xác minh đợt chuyển nguồn, không khởi chạy lịch nền
-  lâu dài hoặc deploy. Xem README và docs/Kiem_Tra_Citi_Bike.md cho kết quả thực tế.
+  lâu dài hoặc deploy. Xem README và PROJECT_REPORT.md cho kết quả thực tế.
 
 ## 20. Phân tầng Bronze, Silver và Gold
 
@@ -630,6 +605,10 @@ Các quyết định chưa chốt không cản trở việc kiểm tra API và b
   docs/Bronze_Silver_Gold.md; hợp đồng dạng máy đọc ở database/data_layers.json.
 
 ## 21. Điều chỉnh lịch ingestion — 02/11/2026
+
+**Xác nhận lại ngày 09/11/2026:** người dùng chọn giữ lịch 30 phút bên dưới.
+Không xóa các mẫu đã thu trong thời gian thử lịch 5 phút. Prediction vẫn giữ
+ngưỡng độ mới 10 phút; có thể không tạo được dự đoán hợp lệ giữa các lần thu thập.
 
 Yêu cầu mới thay thế các mô tả ingestion 5 phút ở các phần trước: khi khởi động
 collector, lấy và ghi ngay một lần theo thời điểm thực tế; sau đó lấy tại phút 00
@@ -712,7 +691,7 @@ ghi kết quả hoặc bật lịch. Kiểm tra tương thích schema Collector/
 
 ## 25. FastAPI và tổ chức thư mục — 09/11/2026
 
-- FastAPI ở `backend/app/`: app factory/lifespan, cấu hình, dependencies, DTO,
+- FastAPI ở `services/database-api/app/`: app factory/lifespan, cấu hình, dependencies, DTO,
   repository đọc, presenter và router tách riêng. `frontend/` dành cho React,
   hiện chỉ có README, chưa có giao diện/bản đồ.
 - Giữ nguyên bốn service và CLI cũ. Tách shared/models thành base, stations,
@@ -729,5 +708,93 @@ ghi kết quả hoặc bật lịch. Kiểm tra tương thích schema Collector/
 - Analysis mặc định ghim cấu hình/phiên bản mới nhất đã công bố. Clustering giữ
   snapshot thành công trước nếu lượt mới thiếu dữ liệu/lỗi; chưa có thì báo thật.
 - Chưa triển khai API admin đăng nhập/ghi dữ liệu, React hoặc public deployment.
-  Xem docs/FastAPI.md và docs/Project_Structure.md; yêu cầu chỉ giữ một bản chuẩn
+  Xem docs/FastAPI.md và PROJECT_REPORT.md; yêu cầu chỉ giữ một bản chuẩn
   trong docs, file gốc dẫn liên kết để không tạo hai bản cập nhật lệch nhau.
+
+## 26. Giao diện React — 09/11/2026
+
+- React/Vite ở frontend, 5 trang với thanh menu trên: Tổng quan, Bản đồ trạm,
+  Chi tiết trạm, Phân tích & phân nhóm, Dự đoán +30 phút. Bố cục responsive,
+  trắng ngà/xanh đậm/teal; các trạng thái có chữ, không chỉ dùng màu.
+- Dữ liệu thật qua FastAPI chỉ đọc; frontend không giữ secret, gọi MySQL, chạy
+  worker hoặc huấn luyện. Tự tải lại API mỗi phút và có nút làm mới riêng.
+- Bản đồ OpenStreetMap/Leaflet dùng tọa độ trạm, tìm tên, lọc trạng thái,
+  chọn marker và mở chi tiết. Mẫu cũ/invalid/inactive không thành trạm có xe mới.
+- Chi tiết có xe/chỗ trả/sức chứa/trạng thái, thời tiết theo tọa độ thật với đơn
+  vị/interval/thời điểm nguồn, biểu đồ và bảng lịch sử; không nối bù khoảng mất.
+- Analysis có giờ/ngày/thứ, số mẫu, độ phủ và chất lượng. Clustering hiển thị
+  snapshot đã công bố và cảnh báo chưa đủ điều kiện, không dựng nhóm giả.
+- Prediction hiển thị baseline/ML/unavailable, mẫu/nguồn/mục tiêu/phát hành,
+  trạng thái còn hiệu lực, giá trị thực tế và sai số khi đã đối chiếu. Mục tiêu
+  giữ nguyên mẫu +30 phút; NULL không biến thành 0.
+- Mọi thời gian hiển thị America/New_York có DST. Có trạng thái loading/empty/
+  error/retry, phân trang lịch sử dự đoán và đọc đủ các trang kết quả API khi cần.
+- Chạy local bằng hai terminal Python/API và npm/frontend, không tự deploy hoặc
+  push trong đợt viết UI. Hướng dẫn Windows, CORS và build ở frontend/README.md.
+
+## 27. Độ phủ theo lịch sử nhịp lấy mẫu — 09/11/2026
+
+- Người dùng xác nhận cloud chuyển từ 30 sang 5 phút tại 18:25 giờ Việt Nam,
+  tức 06:25 EST/11:25 UTC ngày 09/11/2026. Đây là lịch cloud; không tự bật hoặc
+  đổi lịch của collector local chỉ vì thay cách tính độ phủ.
+- Analysis/Clustering đọc config/sampling_schedule.json theo nguồn. Nhịp trước
+  mốc chuyển giữ 1800 giây, sau mốc là 300; chia chính xác cả giờ/ngày chuyển.
+- Khử trùng theo slot lịch, lấy mẫu cuối cả khi inactive; không đánh đồng mẫu lỗi
+  với slot chưa thu. Giữ grace Analysis, kiểm tra ngày hoàn tất của Clustering,
+  xử lý DST và không nối biến động qua slot mới bị mất.
+- Lịch nằm trong hash và calculation_version v2-cadence, giữ nguyên Gold cũ và
+  schema hiện có. Không tự ghi Gold khi worker cloud vẫn dùng mã cũ. Preview chỉ
+  đọc Aiven; push/merge và cập nhật ref cloud là bước triển khai riêng.
+- Xem docs/Do_Phu_Lich_Thu_Thap.md và docs/cadence_verification.json.
+
+## 28. EDA trước huấn luyện — 09/11/2026
+
+- Lệnh độc lập `python -m eda.main --days 28`, đọc Silver đã công bố bằng MySQL
+  READ ONLY được kiểm tra phía server; không ghi Gold, xóa mẫu hoặc huấn luyện ML.
+- Dùng pandas/numpy/seaborn/matplotlib; xuất report.html, summary.json, CSV và PNG
+  trong artifacts/eda. Report chứa mean/median/mode/std từng trạm, thiếu dữ liệu,
+  coverage theo lịch, ngoại lệ IQR và biến động, histogram, giờ/thứ, tương quan.
+- Khử trùng slot nhưng giữ audit các mẫu; mẫu xe thiếu thời tiết vẫn dùng được cho
+  thống kê xe. Cờ ngoại lệ không tự xóa mẫu, capacity chỉ là snapshot hiện tại.
+- So sánh Min-Max/Z-score trên chia tập theo thời gian; chỉ fit train, purge ranh
+  giới +30 phút, giữ NULL. Đây là minh họa, không thay model Prediction/Clustering.
+- Hướng dẫn Windows, chính sách đơn vị/thời tiết, giới hạn và kiểm tra ở docs/EDA.md.
+
+## 29. Hiển thị EDA trên web — 09/11/2026
+
+- Trang Phân tích & phân nhóm thêm mục Khám phá dữ liệu (EDA), chọn giữa các hình
+  đã xuất, mở ảnh lớn và xem mean/median/std/mode theo trạm. Có thời điểm tạo và
+  phạm vi dữ liệu; không trình bày snapshot EDA như dữ liệu hiện tại.
+- FastAPI có GET /api/eda và route PNG theo report, đọc báo cáo hoàn tất cùng nguồn
+  ở API_EDA_REPORT_DIR. Không chạy EDA hoặc đọc database trong request EDA này.
+- Chỉ công bố metadata/thống kê cho phép và PNG trong manifest. Chặn đường dẫn
+  ngoài thư mục, nguồn khác, report chưa hoàn tất, timestamp tương lai và JSON lỗi.
+- Báo cáo mới vẫn tạo bằng CLI độc lập; Làm mới trên web chỉ tải snapshot đã có.
+
+## 30. Các mẫu chuỗi thời gian và ngày mai — 10/11/2026
+
+- Bổ sung chín hình đường/phân tán/phân phối theo cửa sổ 1, 7, 30 ngày.
+- Tổng hợp trung bình giờ → ngày → tuần/tháng để giảm ảnh hưởng đổi chu kỳ thu;
+  chỉ công bố kỳ hoàn tất có đủ độ phủ. Chưa đủ kỳ thì báo thiếu dữ liệu.
+- Thêm xu hướng tổng hợp và đường mùa vụ so sánh các thứ giữa ít nhất hai tuần
+  trọn vẹn. Không coi đồ thị này là kiểm chứng hoặc phân rã mùa vụ thống kê.
+- Dự báo trung bình số xe có thể thuê ngày mai và phân loại mức xe sẵn có bằng
+  mô hình cơ sở cùng quy tắc ngưỡng rõ; tách khỏi mục tiêu tức thời +30 phút.
+- Kiểm thử tiến dần, giữ riêng ngày mục tiêu; chưa đủ ba ngày kiểm thử thì chưa
+  công bố sai số. Báo cáo ngày mai được tạo bằng CLI EDA, chưa bật lịch riêng.
+- Giao diện hiển thị phương pháp, ngày mục tiêu New York, trạng thái thiếu dữ liệu
+  và cảnh báo khi báo cáo không còn dự báo cho ngày mai hiện tại.
+- Chi tiết: [Yêu cầu chuỗi thời gian](Time_Series_Requirements.md).
+
+## 31. Dự báo từng giờ ngày mai — 10/11/2026
+
+- Bảng ngày mai chuyển sang dự báo trung bình số xe từng giờ thay cho một mức
+  trung bình cả ngày; giữ riêng pipeline dự đoán +30 phút hiện có.
+- Mỗi giờ dùng cùng giờ trong bảy ngày hoàn tất liền trước, mỗi ngày đủ độ phủ;
+  cần ít nhất năm ngày có giờ tương ứng đạt độ phủ từ 80%. Không lấp giờ thiếu.
+- Có chọn trạm, lọc giờ ít xe, đánh dấu các giờ nguy cơ và tổng hợp mọi trạm.
+- Ngưỡng phân loại không đổi: ít xe ≤20% sức chứa, nhiều xe ≥80%, còn lại trung bình.
+- Duyệt ngày mục tiêu theo UTC để có đúng 23/24/25 giờ; hiển thị độ lệch UTC
+  để phân biệt hai giờ địa phương lặp. Hai giờ lặp dùng chung mẫu lịch sử cùng giờ.
+- Kiểm thử tiến dần theo từng giờ; chưa đủ ba ngày kiểm thử cùng giờ thì không
+  công bố sai số hoặc độ chính xác. Dự báo mới tạo bằng báo cáo EDA riêng.

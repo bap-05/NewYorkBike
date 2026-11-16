@@ -1,0 +1,282 @@
+{
+  "collection_runs": {
+    "name": "luot_thu_thap",
+    "columns": {
+      "id": "ma",
+      "scheduled_at": "thoi_diem_lich",
+      "started_at": "bat_dau_luc",
+      "finished_at": "ket_thuc_luc",
+      "source": "nguon",
+      "feed_metadata": "thong_tin_nguon",
+      "bronze_manifest_path": "duong_dan_manifest_bronze",
+      "status": "trang_thai",
+      "success_count": "so_thanh_cong",
+      "error_count": "so_loi",
+      "attempt_count": "so_lan_thu",
+      "error_summary": "tom_tat_loi"
+    },
+    "checks": {
+      "ck_run_status": "status IN ('running','success','partial','failed')"
+    }
+  },
+  "model_versions": {
+    "name": "phien_ban_mo_hinh",
+    "columns": {
+      "id": "ma",
+      "source": "nguon",
+      "name": "ten",
+      "kind": "loai",
+      "identity_hash": "ma_bam_dinh_danh",
+      "created_at": "tao_luc",
+      "trained_at": "huan_luyen_luc",
+      "train_start": "bat_dau_du_lieu_hoc",
+      "train_end": "ket_thuc_du_lieu_hoc",
+      "feature_config": "cau_hinh_dac_trung",
+      "metrics": "danh_gia",
+      "artifact": "du_lieu_mo_hinh",
+      "is_active": "dang_su_dung"
+    },
+    "checks": {
+      "ck_model_kind": "kind IN ('persistence','random_forest')"
+    }
+  },
+  "service_runs": {
+    "name": "luot_chay_dich_vu",
+    "columns": {
+      "id": "ma",
+      "service_name": "ten_dich_vu",
+      "source": "nguon",
+      "scheduled_at": "thoi_diem_lich",
+      "started_at": "bat_dau_luc",
+      "finished_at": "ket_thuc_luc",
+      "heartbeat_at": "thoi_diem_tin_hieu_song",
+      "input_watermark": "moc_du_lieu_moi_nhat",
+      "status": "trang_thai",
+      "attempt_count": "so_lan_thu",
+      "calculation_version": "phien_ban_tinh_toan",
+      "configuration_hash": "ma_bam_cau_hinh",
+      "configuration": "cau_hinh",
+      "summary": "tom_tat",
+      "result_count": "so_ket_qua",
+      "error_summary": "tom_tat_loi"
+    },
+    "checks": {
+      "ck_service_status": "status IN ('running','success','skipped','failed')",
+      "ck_service_counts": "attempt_count >= 1 AND result_count >= 0"
+    }
+  },
+  "stations": {
+    "name": "tram_xe",
+    "columns": {
+      "source": "nguon",
+      "station_id": "ma_tram",
+      "name": "ten",
+      "latitude": "vi_do",
+      "longitude": "kinh_do",
+      "rack_count": "so_gia_xe",
+      "capacity": "suc_chua",
+      "information_updated_at": "thoi_diem_cap_nhat_thong_tin",
+      "is_monitored": "dang_theo_doi",
+      "updated_at": "cap_nhat_luc"
+    },
+    "checks": {
+      "ck_station_longitude": "longitude BETWEEN -180 AND 180",
+      "ck_station_capacity": "capacity IS NULL OR capacity >= 0",
+      "ck_station_racks": "rack_count IS NULL OR rack_count >= 0",
+      "ck_station_latitude": "latitude BETWEEN -90 AND 90"
+    }
+  },
+  "analysis_results": {
+    "name": "ket_qua_phan_tich",
+    "columns": {
+      "id": "ma",
+      "source": "nguon",
+      "station_id": "ma_tram",
+      "window_start": "bat_dau_khoang",
+      "window_end": "ket_thuc_khoang",
+      "aggregation": "kieu_tong_hop",
+      "metric_name": "ten_chi_so",
+      "metric_value": "gia_tri_chi_so",
+      "sample_count": "so_mau",
+      "observed_sample_count": "so_mau_quan_sat",
+      "expected_sample_count": "so_mau_ky_vong",
+      "coverage": "do_phu",
+      "quality_status": "chat_luong_du_lieu",
+      "dimensions": "thuoc_tinh_phan_tich",
+      "input_cutoff": "gioi_han_du_lieu",
+      "input_watermark": "moc_du_lieu_moi_nhat",
+      "calculated_at": "thoi_diem_tinh_toan",
+      "calculation_version": "phien_ban_tinh_toan",
+      "configuration_hash": "ma_bam_cau_hinh",
+      "service_run_id": "ma_luot_chay_dich_vu"
+    },
+    "checks": {
+      "ck_analysis_window": "window_end > window_start",
+      "ck_analysis_coverage": "coverage IS NULL OR (coverage >= 0 AND coverage <= 1)",
+      "ck_analysis_aggregation": "aggregation IN ('hour','day')",
+      "ck_analysis_quality": "quality_status IN ('ok','low_coverage','insufficient_data')",
+      "ck_analysis_counts": "sample_count >= 0 AND observed_sample_count >= 0 AND expected_sample_count >= 0"
+    }
+  },
+  "bike_observations": {
+    "name": "lich_su_so_xe",
+    "columns": {
+      "id": "ma",
+      "source": "nguon",
+      "station_id": "ma_tram",
+      "collection_run_id": "ma_luot_thu_thap",
+      "sampled_at": "thoi_diem_mau",
+      "collected_at": "thoi_diem_thu_thap",
+      "source_observed_at": "thoi_diem_nguon",
+      "available_bikes": "so_xe_co_the_thue",
+      "available_docks": "so_cho_tra_xe",
+      "is_installed": "da_lap_dat",
+      "is_renting": "cho_phep_thue",
+      "is_returning": "cho_phep_tra",
+      "feed_last_updated": "thoi_diem_cap_nhat_nguon",
+      "gbfs_version": "phien_ban_gbfs",
+      "quality_status": "chat_luong_du_lieu"
+    },
+    "checks": {
+      "ck_bike_docks": "available_docks IS NULL OR available_docks >= 0",
+      "ck_bike_count": "available_bikes IS NULL OR available_bikes >= 0",
+      "ck_bike_quality": "quality_status IN ('valid','missing','invalid','inactive','stale')"
+    }
+  },
+  "clustering_runs": {
+    "name": "luot_phan_cum",
+    "columns": {
+      "id": "ma",
+      "source": "nguon",
+      "run_date": "ngay_chay",
+      "service_run_id": "ma_luot_chay_dich_vu",
+      "window_start": "bat_dau_khoang",
+      "window_end": "ket_thuc_khoang",
+      "input_cutoff": "gioi_han_du_lieu",
+      "started_at": "bat_dau_luc",
+      "finished_at": "ket_thuc_luc",
+      "status": "trang_thai",
+      "algorithm": "thuat_toan",
+      "calculation_version": "phien_ban_tinh_toan",
+      "configuration_hash": "ma_bam_cau_hinh",
+      "feature_config": "cau_hinh_dac_trung",
+      "parameters": "tham_so",
+      "summary": "tom_tat"
+    },
+    "checks": {
+      "ck_clustering_status": "status IN ('running','success','insufficient_data','failed')",
+      "ck_clustering_window": "window_end > window_start AND input_cutoff >= window_end"
+    }
+  },
+  "training_jobs": {
+    "name": "luot_huan_luyen",
+    "columns": {
+      "id": "ma",
+      "source": "nguon",
+      "requested_at": "thoi_diem_yeu_cau",
+      "started_at": "bat_dau_luc",
+      "finished_at": "ket_thuc_luc",
+      "status": "trang_thai",
+      "parameters": "tham_so",
+      "summary": "tom_tat",
+      "model_version_id": "ma_phien_ban_mo_hinh",
+      "error_summary": "tom_tat_loi"
+    },
+    "checks": {
+      "ck_training_status": "status IN ('running','success','insufficient_data','baseline_preferred','failed')"
+    }
+  },
+  "weather_observations": {
+    "name": "lich_su_thoi_tiet",
+    "columns": {
+      "id": "ma",
+      "collection_run_id": "ma_luot_thu_thap",
+      "requested_latitude": "vi_do_yeu_cau",
+      "requested_longitude": "kinh_do_yeu_cau",
+      "returned_latitude": "vi_do_tra_ve",
+      "returned_longitude": "kinh_do_tra_ve",
+      "weather_time": "thoi_diem_thoi_tiet",
+      "collected_at": "thoi_diem_thu_thap",
+      "temperature": "nhiet_do",
+      "humidity": "do_am",
+      "rain": "luong_mua",
+      "wind_speed": "toc_do_gio",
+      "units": "don_vi",
+      "temperature_unit": "don_vi_nhiet_do",
+      "humidity_unit": "don_vi_do_am",
+      "rain_unit": "don_vi_mua",
+      "wind_speed_unit": "don_vi_gio",
+      "interval_seconds": "chu_ky_giay",
+      "source": "nguon"
+    },
+    "checks": {
+      "ck_weather_humidity": "humidity IS NULL OR humidity BETWEEN 0 AND 100",
+      "ck_weather_wind": "wind_speed IS NULL OR wind_speed >= 0",
+      "ck_weather_rain": "rain IS NULL OR rain >= 0",
+      "ck_weather_interval": "interval_seconds > 0"
+    }
+  },
+  "observation_weather_links": {
+    "name": "lien_ket_xe_thoi_tiet",
+    "columns": {
+      "bike_observation_id": "ma_mau_xe",
+      "weather_observation_id": "ma_mau_thoi_tiet"
+    },
+    "checks": {}
+  },
+  "predictions": {
+    "name": "du_doan_so_xe",
+    "columns": {
+      "id": "ma",
+      "source": "nguon",
+      "station_id": "ma_tram",
+      "service_run_id": "ma_luot_chay_dich_vu",
+      "scheduled_at": "thoi_diem_lich",
+      "input_cutoff_at": "gioi_han_du_lieu",
+      "input_time": "thoi_diem_dau_vao",
+      "target_at": "thoi_diem_muc_tieu",
+      "issued_at": "thoi_diem_phat_hanh",
+      "input_observation_id": "ma_mau_dau_vao",
+      "model_version_id": "ma_phien_ban_mo_hinh",
+      "status": "trang_thai",
+      "reason": "ly_do",
+      "raw_predicted_bikes": "so_xe_du_doan_goc",
+      "predicted_bikes": "so_xe_du_doan",
+      "features": "dac_trung",
+      "actual_observation_id": "ma_mau_thuc_te",
+      "evaluated_at": "thoi_diem_danh_gia",
+      "actual_bikes": "so_xe_thuc_te",
+      "actual_time": "thoi_diem_thuc_te",
+      "target_offset_seconds": "lech_moc_muc_tieu_giay",
+      "absolute_error": "sai_so_tuyet_doi",
+      "squared_error": "sai_so_binh_phuong",
+      "served_absolute_error": "sai_so_tuyet_doi_hien_thi"
+    },
+    "checks": {
+      "ck_prediction_nonnegative": "predicted_bikes IS NULL OR predicted_bikes >= 0",
+      "ck_prediction_publication": "(status='unavailable' AND predicted_bikes IS NULL AND raw_predicted_bikes IS NULL) OR (status IN ('baseline','ml') AND predicted_bikes IS NOT NULL AND raw_predicted_bikes IS NOT NULL AND model_version_id IS NOT NULL AND input_observation_id IS NOT NULL AND input_time IS NOT NULL AND target_at IS NOT NULL AND target_at > issued_at)",
+      "ck_prediction_status": "status IN ('baseline','ml','unavailable')"
+    }
+  },
+  "station_clusters": {
+    "name": "nhom_tram",
+    "columns": {
+      "source": "nguon",
+      "clustering_run_id": "ma_luot_phan_cum",
+      "station_id": "ma_tram",
+      "cluster_label": "nhan_nhom",
+      "distance_to_centroid": "khoang_cach_den_tam",
+      "feature_values": "gia_tri_dac_trung",
+      "metadata_snapshot": "thong_tin_tai_thoi_diem",
+      "sample_count": "so_mau",
+      "expected_sample_count": "so_mau_ky_vong",
+      "coverage": "do_phu",
+      "profile": "ho_so"
+    },
+    "checks": {
+      "ck_cluster_coverage": "coverage >= 0 AND coverage <= 1",
+      "ck_cluster_label_distance": "cluster_label >= 0 AND distance_to_centroid >= 0",
+      "ck_cluster_samples": "sample_count > 0 AND expected_sample_count >= sample_count"
+    }
+  }
+}

@@ -1,0 +1,26 @@
+[build-system]
+requires = ["setuptools>=68,<83"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "newyorkbike"
+version = "0.1.0"
+description = "Citi Bike data services, read-only API and time-series reports"
+requires-python = ">=3.11"
+
+[tool.setuptools]
+packages = [
+  "ingestion", "ingestion.clients", "analysis", "eda", "clustering", "prediction",
+  "backend", "backend.app", "backend.app.routers", "shared", "shared.models",
+  "shared.repositories", "scripts",
+]
+
+[tool.setuptools.package-dir]
+ingestion = "services/data-ingestion"
+analysis = "services/data-analysis"
+eda = "services/data-analysis/eda"
+backend = "services/database-api"
+clustering = "services/clustering"
+prediction = "services/prediction"
+shared = "shared"
+scripts = "scripts"

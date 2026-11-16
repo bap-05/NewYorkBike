@@ -2,15 +2,17 @@
 
 Service độc lập: đọc Silver trên MySQL, tạo đặc trưng lịch sử từng trạm, chạy
 StandardScaler + K-means, ghi snapshot Gold. Không gọi API nguồn, không cần proxy,
-không chạy Analysis hoặc Prediction bên trong. Giữ lịch collector 30 phút và
-Analysis 5 phút hiện có. Clustering chạy mỗi ngày theo America/New_York.
+không chạy Analysis hoặc Prediction bên trong. Clustering chạy mỗi ngày theo
+America/New_York; Analysis có lịch độc lập. Độ phủ dùng lịch thu thập 30/5 phút
+theo mốc chuyển đã khai báo, không áp 5 phút ngược về toàn bộ dữ liệu cũ.
+Xem [quy tắc độ phủ và cách áp dụng](Do_Phu_Lich_Thu_Thap.md).
 
 ## Chạy trên Windows
 
 Mở terminal tại `F:\126\NewYorkBike`. Dùng đúng Python của `.venv`:
 
 ```powershell
-.\.venv\Scripts\python.exe -m pip install -r requirements-clustering.txt
+.\.venv\Scripts\python.exe -m pip install -r requirements.txt
 .\.venv\Scripts\python.exe -m clustering.main --preview
 ```
 
@@ -172,12 +174,12 @@ Bằng chứng tóm tắt: [clustering_verification.json](clustering_verificatio
 
 ## File thêm/sửa trong phần Clustering
 
-- `clustering/__init__.py`, `config.py`, `features.py`, `algorithm.py`, `worker.py`,
+- `services/clustering/__init__.py`, `config.py`, `features.py`, `algorithm.py`, `worker.py`,
   `main.py`: cấu hình, đọc Silver, thuật toán, lưu snapshot và CLI/lịch ngày.
 - `shared/models/__init__.py`, `shared/repositories/gold.py`: model và đọc Gold.
 - `database/migrations/versions/0005_clustering.py`, `database/data_layers.json`:
   migration cộng thêm và hợp đồng dữ liệu cập nhật.
-- `requirements-clustering.txt`, `requirements-dev.txt`, `.env.example`: phụ thuộc
+- `requirements.txt`, `.env.example`: phụ thuộc
   riêng và mẫu cấu hình; không sửa `.env` thật.
 - `scripts/run_github_clustering.py`, `.github/workflows/citibike-clustering.yml`:
   job riêng dùng Secrets hiện có, lịch tự động chưa bật.
@@ -186,3 +188,22 @@ Bằng chứng tóm tắt: [clustering_verification.json](clustering_verificatio
 - `README.md`, `docs/Clustering.md`, `docs/clustering_verification.json`,
   `docs/Bronze_Silver_Gold.md`, `docs/Yeu_Cau_Web_Seoul_Bike.md` và bản yêu cầu
   gốc `Yeu_Cau_Web_Seoul_Bike.md`: tài liệu và kết quả kiểm tra.
+# Xem nhóm và giải thích trên website
+
+Trong **Bản đồ trạm**, chọn **Màu trên bản đồ → Theo nhóm hành vi**.
+Bản đồ dùng màu riêng cho từng nhóm từ lượt phân cụm thành công đã công bố,
+có chú giải và tên nhóm trong popup. Chế độ **Theo tình trạng xe** vẫn dùng màu
+theo độ mới và số xe; hai cách tô màu có ý nghĩa khác nhau.
+
+Trang **Phân tích & phân nhóm → Nhóm trạm tương đồng** cũng có bản đồ và
+các thẻ hồ sơ nhóm: danh sách trạm, tỷ lệ xe/sức chứa, độ biến động, mức thay đổi,
+tỷ lệ hết/ít xe và nhịp xe theo bốn khung giờ New York. Các giá trị được tính
+từ đặc trưng đã lưu của chính lượt phân cụm, mỗi trạm có trọng số bằng nhau.
+Không thay đặc trưng thiếu bằng 0. Thẻ mô tả sự tương đồng thống kê, không
+suy diễn chức năng khu vực hoặc nguyên nhân di chuyển khi chưa có dữ liệu.
+
+Nhóm được tạo bằng K-means trên 9 đặc trưng đã chuẩn hóa. Khoảng cách tới tâm
+nhỏ hơn nghĩa là trạm gần hồ sơ đại diện nhóm hơn trên không gian chuẩn hóa.
+Số nhóm không phải thứ hạng và có thể đổi ý nghĩa giữa các lượt. Khi chưa có
+kết quả hợp lệ, web thông báo chưa có nhóm; nếu dùng kết quả thành công cũ hơn
+lượt thử mới nhất, web ghi rõ ngày. Mở trang không chạy lại Clustering.

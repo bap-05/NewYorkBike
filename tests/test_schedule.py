@@ -26,7 +26,7 @@ def test_next_new_york_wall_clock_boundary(current, expected):
     assert actual.astimezone(ZoneInfo("America/New_York")).minute in (0, 30)
 
 
-def run_fake_scheduler(monkeypatch, settings, *, start, first_duration, stop_after):
+def run_fake_scheduler(monkeypatch, settings, *, start, first_duration, stop_after, interval_minutes=30):
     clock = [start]
     calls = []
     disposed = []
@@ -55,7 +55,7 @@ def run_fake_scheduler(monkeypatch, settings, *, start, first_duration, stop_aft
     monkeypatch.setattr(main, "utcnow", lambda: clock[0])
     monkeypatch.setattr(main.time, "sleep", lambda seconds: clock.__setitem__(0, clock[0] + timedelta(seconds=seconds)))
     with pytest.raises(KeyboardInterrupt):
-        main.run(settings, schedule=True)
+        main.run(settings, schedule=True, interval_minutes=interval_minutes)
     assert disposed == [True]
     return calls
 
@@ -72,6 +72,16 @@ def test_does_not_overlap_or_backfill_boundary_passed_during_collection(monkeypa
         start=datetime(2026, 11, 2, 13, 59, 59, tzinfo=UTC), first_duration=6, stop_after=2)
     assert [display_time(value) for value in calls] == [
         "2026-11-02T08:59:59-05:00", "2026-11-02T09:30:00-05:00"]
+
+
+@pytest.mark.parametrize("first_duration,expected_next", [(7, "2026-11-02T14:00:00+00:00"),
+                                                        (180, "2026-11-02T14:05:00+00:00")])
+def test_five_minute_schedule_uses_boundaries_and_skips_elapsed_slots(monkeypatch, settings, first_duration, expected_next):
+    calls = run_fake_scheduler(monkeypatch, settings,
+        start=datetime(2026, 11, 2, 13, 57, 12, tzinfo=UTC), first_duration=first_duration,
+        stop_after=3, interval_minutes=5)
+    assert calls[1] == datetime.fromisoformat(expected_next)
+    assert calls[2] == calls[1] + timedelta(minutes=5)
 
 
 def test_future_sample_is_rejected(session, settings, now):

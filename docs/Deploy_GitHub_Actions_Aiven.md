@@ -1,5 +1,11 @@
 # Thu thập khi tắt laptop: GitHub Actions + Aiven
 
+**Cập nhật 09/11/2026:** người dùng chọn giữ Ingestion 30 phút/lần, tại phút 00/30.
+Với lịch cron-job.org đang dùng, sửa job collector thành `0,30 * * * *` và Save;
+giữ `ENABLE_SCHEDULE=false` để tránh chạy trùng với cron GitHub dự phòng.
+Prediction giữ ngưỡng độ mới 10 phút, nên có thể ghi `unavailable` giữa các lượt
+thu thập. Không tăng ngưỡng độ mới hoặc xóa các mẫu ngoài mốc đã thu thập.
+
 Chuẩn bị ngày 03/11/2026 (Asia/Bangkok). Workflow đã có trong mã nguồn, chưa được
 đẩy lên GitHub, chạy thử trên runner hoặc bật lịch. Đây là triển khai collector,
 không phải triển khai website React/FastAPI hoặc các service Gold chưa hoàn thiện.

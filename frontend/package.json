@@ -1,0 +1,31 @@
+{
+  "name": "newyorkbike-frontend",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "scripts": {
+    "dev": "vite --host 127.0.0.1",
+    "build": "vite build",
+    "preview": "vite preview --host 127.0.0.1",
+    "test": "node --test src/lib/data.test.js",
+    "test:browser": "playwright test",
+    "format": "prettier --write src tests *.js index.html"
+  },
+  "dependencies": {
+    "leaflet": "^1.9.4",
+    "lucide-react": "^0.468.0",
+    "react": "^19.0.0",
+    "react-dom": "^19.0.0",
+    "react-leaflet": "^5.0.0",
+    "react-router-dom": "^7.0.0"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.56.0",
+    "@vitejs/plugin-react": "^4.4.0",
+    "prettier": "^3.9.10",
+    "vite": "^7.0.0"
+  },
+  "engines": {
+    "node": ">=22.12.0"
+  }
+}

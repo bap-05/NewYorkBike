@@ -1,4 +1,0 @@
--r requirements-clustering.txt
--r requirements-prediction.txt
--r requirements-api.txt
-pytest>=8.3,<10
