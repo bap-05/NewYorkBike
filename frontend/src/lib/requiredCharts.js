@@ -15,7 +15,10 @@ export const requiredChartNames = [
 ];
 
 export function requiredCharts(figures) {
-  return requiredChartNames.flatMap((name) =>
-    figures.filter((f) => f.filename === name),
-  );
+  return [
+    ...requiredChartNames.flatMap((name) =>
+      figures.filter((f) => f.filename === name),
+    ),
+    ...figures.filter((f) => /^decomposition_[a-p]{16}\.png$/.test(f.filename)),
+  ];
 }

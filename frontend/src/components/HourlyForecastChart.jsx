@@ -1,3 +1,4 @@
+import ChartZoom from "./ChartZoom.jsx";
 import { useState } from "react";
 import { number, percent } from "../lib/data.js";
 import { forecastSegments, usableForecast } from "../lib/hourlyForecast.js";
@@ -71,7 +72,7 @@ export default function HourlyForecastChart({
           Chưa đủ dữ liệu (—)
         </span>
       </div>
-      <div
+      <ChartZoom><div
         className="hourly-chart-scroll"
         tabIndex={0}
         role="region"
@@ -81,7 +82,7 @@ export default function HourlyForecastChart({
           className="hourly-forecast-svg"
           data-chart-type={chartType}
           viewBox={`0 0 ${width} 330`}
-          style={{ width }}
+          style={{ width: "100%", minWidth: width }}
           role="group"
           aria-label="Biểu đồ số xe trung bình dự báo theo giờ New York"
         >
@@ -247,6 +248,7 @@ export default function HourlyForecastChart({
           </text>
         </svg>
       </div>
+      </ChartZoom>
       <div className="hourly-selection" aria-live="polite" aria-atomic="true">
         <h4>
           {selected.hour_label} ·{" "}

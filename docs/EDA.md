@@ -12,7 +12,7 @@ tiếp từ Aiven bằng API chỉ đọc; không phụ thuộc thời điểm t
 Kỳ hiện tại được báo chưa kết thúc, kỳ không có mẫu được hiển thị trống.
 Các biểu đồ còn lại và bảng thống kê vẫn đọc từ báo cáo đã tạo.
 
-Bản hiện tại giữ đúng 12 hình theo yêu cầu: đường, phân tán, phân phối theo
+Bản hiện tại có 12 hình tổng quan: đường, phân tán, phân phối theo
 ngày/tuần/tháng, ma trận tương quan, xu hướng và mùa vụ tuần có điều kiện dữ liệu. Trang Dự đoán có
 biểu đồ dự báo từng giờ ngày mai và phân loại mức xe sẵn có. Có bộ chọn trạm
 và dạng biểu đồ **cột / đường / vùng**. Đổi trạm sẽ đổi dữ liệu dự báo tương ứng,
@@ -23,9 +23,26 @@ giữ dạng biểu đồ đã chọn. Đường/vùng được ngắt ở giờ
 
 Vào **Phân tích & phân nhóm → Khám phá dữ liệu (EDA)**. Chọn biểu đồ trong danh sách:
 đường, phân tán, phân phối theo ngày/tuần/tháng, xu hướng, mùa vụ hoặc tương quan.
-Các biểu đồ ngoài yêu cầu không còn được tạo hoặc hiển thị trong báo cáo mới.
-Có bảng trung bình/trung vị/độ lệch chuẩn/giá trị phổ biến theo từng trạm, nút mở ảnh lớn và thời điểm
-tạo/phạm vi dữ liệu của báo cáo. Thống kê này là snapshot, không phải số xe hiện tại.
+Có thêm mục **Phân rã xu hướng – mùa vụ – phần dư**, với bộ chọn trạm và nút mở ảnh lớn.
+Các ảnh là snapshot của dữ liệu tại lúc tạo báo cáo.
+
+### Phân rã chuỗi thời gian theo trạm
+
+Dùng [STL của statsmodels](https://www.statsmodels.org/stable/generated/statsmodels.tsa.seasonal.STL.html),
+chu kỳ 24 giờ và `robust=True`, với mô hình cộng:
+**Chuỗi gốc = Xu hướng + Mùa vụ + Phần dư**. Chuỗi gốc là trung bình số xe theo giờ;
+mùa vụ thể hiện chu kỳ ngày, không phải kết luận về mùa vụ năm hoặc tác động nhân quả của thời tiết.
+
+Mỗi giờ phải có ít nhất 80% số mẫu hợp lệ theo lịch lấy mẫu đã khai báo. Chỉ sử dụng giờ hoàn tất,
+khử trùng theo mốc và giữ ưu tiên nguồn hiện tại; mẫu lỗi mới nhất không được thay bằng mẫu cũ.
+Không điền 0, không nội suy giờ thiếu, không dùng mẫu ước lượng. Chọn đoạn liên tục gần nhất
+có ít nhất 168 giờ (7 chu kỳ ngày), ngắt đoạn khi thiếu giờ hoặc đổi UTC offset ở New York.
+Nếu chưa đủ điều kiện, ảnh ghi rõ chưa đủ dữ liệu. Phạm vi dữ liệu được ghi trên ảnh.
+
+Mỗi trạm có một ảnh bốn ô: chuỗi gốc, xu hướng, mùa vụ và phần dư. Kết quả số lưu trong
+`time_series_decomposition.csv`; điều kiện chất lượng và đoạn được chọn lưu tại `summary.json`.
+Đây là phân tích hồi cứu: STL sử dụng cả hai phía của chuỗi, không đưa các thành phần này
+trực tiếp vào mô hình dự báo hoặc kiểm thử lịch sử vì có thể gây rò rỉ dữ liệu tương lai.
 
 FastAPI đọc báo cáo đã hoàn tất trong `artifacts/eda/` ở máy chủ API, có thể đổi bằng
 `API_EDA_REPORT_DIR` trong `.env`. Report chỉ được công bố sau khi cả summary.json

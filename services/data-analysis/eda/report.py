@@ -56,6 +56,8 @@ def write_report(output, frame, tables, summary, figures):
     for key in ('daily', 'weekly', 'monthly'):
         if key in tables:
             datasets[f'calendar_{key}.csv'] = tables[key]
+    if 'decomposition' in tables:
+        datasets['time_series_decomposition.csv'] = tables['decomposition']
     if 'day_ahead' in tables:
         datasets['day_ahead_forecast.csv'] = pd.DataFrame(tables['day_ahead']['items'])
         datasets['day_ahead_hourly.csv'] = pd.DataFrame([

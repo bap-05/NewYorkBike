@@ -144,6 +144,36 @@ def test_empty_forecasts_are_retried_instead_of_frozen(api, monkeypatch):
     assert worker.publish_once(session, app.state.settings).status == 'success'
 
 
+def test_repair_retains_old_publication_and_deduplicates_official_history(api, monkeypatch):
+    client, session, app = api
+    clock = [NOW]
+    monkeypatch.setattr(worker, 'utcnow', lambda: clock[0])
+    partial = report(NOW)
+    partial['day_ahead'][0]['hourly_forecasts'][0].update(
+        status='insufficient_data', predicted_mean_bikes=None)
+    monkeypatch.setattr(worker, 'build_report', lambda *a: deepcopy(partial))
+    old = worker.publish_once(session, app.state.settings)
+    frozen = deepcopy(old.summary)
+    clock[0] += timedelta(minutes=5)
+    # No improvement: do not create another revision.
+    assert worker.publish_once(session, app.state.settings, repair=True).id == old.id
+    monkeypatch.setattr(worker, 'build_report', lambda *a: report(clock[0], value=6))
+    new = worker.publish_once(session, app.state.settings, repair=True)
+    assert new.id != old.id and old.summary == frozen
+    assert new.configuration['supersedes_publication_id'] == old.id
+    assert session.scalar(select(func.count()).select_from(ServiceRun)) == 2
+    assert [r.id for r in worker.published_runs(session, 'citibike', clock[0])] == [new.id]
+    assert worker.actual_summary([new], '00001')['pending_hours'] == 24
+    app.state.clock = lambda: clock[0]
+    response = client.get('/api/eda/day-ahead')
+    assert response.status_code == 200, response.text
+    item = response.json()['item']
+    assert item['supersedes_publication_id'] == old.id
+    assert item['day_ahead'][0]['issued_evaluation']['pending_hours'] == 24
+    monkeypatch.setattr(worker, 'build_report', lambda *a: pytest.fail('Complete publication stays frozen'))
+    assert worker.publish_once(session, app.state.settings, repair=True).id == new.id
+
+
 @pytest.mark.parametrize('instant,hours', [('2026-03-07T12:00:00+00:00',23), ('2026-10-31T12:00:00+00:00',25)])
 def test_publication_day_boundaries_follow_dst(instant, hours):
     at = datetime.fromisoformat(instant)

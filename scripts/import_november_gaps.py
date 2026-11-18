@@ -43,8 +43,12 @@ def persist(session, frame, manifest, now):
     groups = defaultdict(list)
     for r in frame.itertuples():
         groups[r.polled_at.to_pydatetime()].append(r)
+    run_ids = dict(session.execute(select(CollectionRun.scheduled_at, CollectionRun.id).where(
+        CollectionRun.source == 'citibike', CollectionRun.scheduled_at.in_(list(groups)))).all()) if groups else {}
     run_rows = []
     for at, rows in sorted(groups.items()):
+        if at in run_ids:
+            continue  # Preserve an existing run and all its metadata unchanged.
         run = dict(source='citibike', scheduled_at=at, started_at=now,
             finished_at=now, status='success', success_count=len(rows), error_count=0, attempt_count=1,
             feed_metadata={'is_historical': True, 'is_estimated': False, 'original_source': 'citibike',
@@ -82,7 +86,7 @@ def main():
     p.add_argument('--directory', required=True)
     p.add_argument('--apply', action='store_true')
     args = p.parse_args()
-    paths = sorted(Path(args.directory).glob('2026-11*.parquet'))
+    paths = sorted(Path(args.directory).glob('*2026-11*.parquet'))
     if len(paths) != 10:
         raise ValueError('Expected exactly ten November station files')
     files = {str(path.resolve()): hashlib.sha256(path.read_bytes()).hexdigest() for path in paths}
@@ -100,6 +104,8 @@ def main():
         ids = set(session.scalars(select(Station.station_id).where(Station.source=='citibike', Station.is_monitored==True)))
         frame, stats = normalize_bikes(raw, start=pd.Timestamp('2026-11-01',tz='UTC'),
             end=min(pd.Timestamp('2026-12-01',tz='UTC'),pd.Timestamp(utcnow())), known_ids=ids)
+        if frame.empty or set(frame.station_id) != ids:
+            raise ValueError('Input must contain November observations for every monitored station')
         first, last = frame.input_time.min().floor('5min').to_pydatetime(), frame.input_time.max().ceil('5min').to_pydatetime()
         query = select(BikeObservation).where(BikeObservation.source=='citibike',
             BikeObservation.sampled_at>=first, BikeObservation.sampled_at<=last)

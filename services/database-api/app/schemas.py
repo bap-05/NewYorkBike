@@ -247,6 +247,7 @@ class EdaFigure(Contract):
     filename: str
     title: str
     url: str
+    station_id: str|None = None
 
 
 class EdaStatistic(Contract):
@@ -391,6 +392,7 @@ class DayAheadForecast(Contract):
 
 class DayAheadReport(Contract):
     publication_id: int|None = None
+    supersedes_publication_id: int|None = None
     persisted: bool = False
     issued_at: TimeValue|None = None
     source: str

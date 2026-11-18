@@ -18,7 +18,7 @@ def calculate(session, settings, options, instant):
     return members, parameters, summary
 
 
-def cluster_once(session, settings, options, *, cutoff=None):
+def cluster_once(session, settings, options, *, cutoff=None, model=None, rebuild=False):
     instant = as_utc(cutoff) if cutoff is not None else utcnow()
     if instant > utcnow():
         raise ValueError("Clustering cutoff cannot be in the future")
@@ -27,11 +27,15 @@ def cluster_once(session, settings, options, *, cutoff=None):
     configuration = {**options.as_dict(), "source": source,
         "station_ids": sorted(settings.station_ids or session.scalars(
             select(Station.station_id).where(Station.source == source, Station.is_monitored.is_(True))))}
+    if model is not None:
+        from clustering.saved_model import validate_model
+        validate_model(model, source)
+        configuration["model_id"] = model["model_id"]
     digest = hashlib.sha256(json.dumps(configuration, sort_keys=True).encode()).hexdigest()
     query = select(ClusteringRun).where(ClusteringRun.source == source, ClusteringRun.run_date == day,
         ClusteringRun.calculation_version == VERSION, ClusteringRun.configuration_hash == digest)
     run = session.scalar(query)
-    if run is not None and run.status == "success":
+    if run is not None and run.status == "success" and not rebuild:
         session.commit()
         return run
     started = utcnow()
@@ -63,10 +67,19 @@ def cluster_once(session, settings, options, *, cutoff=None):
     session.commit()
     run_id, control_id = run.id, control.id
     try:
-        members, parameters, summary = calculate(session, settings, options, instant)
+        if model is None:
+            members, parameters, summary = calculate(session, settings, options, instant)
+        else:
+            from clustering.saved_model import assign_clusters
+            features, summary = calculate_features(session, settings, options, instant)
+            members, parameters = assign_clusters(features, options, model)
         watermark = summary["input_watermark"]
         summary["input_watermark"] = watermark.isoformat() if watermark else None
+        existing = set(session.scalars(select(StationCluster.station_id).where(
+            StationCluster.source == source, StationCluster.clustering_run_id == run_id)))
         for member in members:
+            if member["station_id"] in existing:
+                continue
             session.add(StationCluster(source=source, clustering_run_id=run_id,
                 station_id=member["station_id"], cluster_label=member["cluster_label"],
                 distance_to_centroid=member["distance_to_centroid"], feature_values=member["feature_values"],

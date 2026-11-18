@@ -64,6 +64,22 @@ def analyze(session, settings, *, cutoff=CUTOFF, options=None):
     return worker.analyze_once(session, settings, options or AnalysisOptions(window_days=1), cutoff=cutoff)
 
 
+def test_rebuild_restores_deleted_gold_in_successful_period(session, analysis_settings):
+    from sqlalchemy import delete
+    observation(session, CUTOFF-timedelta(hours=1), 7)
+    options = AnalysisOptions(window_days=1)
+    first = worker.analyze_once(session, analysis_settings, options, cutoff=CUTOFF)
+    original = list(session.scalars(select(AnalysisResult)))
+    assert original
+    session.execute(delete(AnalysisResult))
+    session.commit()
+    repeated = worker.analyze_once(session, analysis_settings, options, cutoff=CUTOFF, rebuild=True)
+    assert repeated.id == first.id
+    restored = list(session.scalars(select(AnalysisResult)))
+    assert len(restored) == len(original)
+    assert value(session, "available_bikes_mean").metric_value == 7
+
+
 def test_actual_statistics_preserve_zero_and_exclude_inactive(session, analysis_settings):
     observation(session, CUTOFF-timedelta(hours=2), 0, weather=True)
     observation(session, CUTOFF-timedelta(minutes=90), 2, weather=True)

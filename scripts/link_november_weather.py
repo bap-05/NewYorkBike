@@ -1,4 +1,5 @@
 """Attach archived hourly weather to the November main-table gap import."""
+import argparse
 from collections import Counter
 from decimal import Decimal
 import hashlib
@@ -26,6 +27,8 @@ def weather_values(row, station, cache):
     expected={'temperature_2m':'\u00b0C','relative_humidity_2m':'%','rain':'mm','wind_speed_10m':'m/s'}
     if any(cache['payload'].get('hourly_units',{}).get(k)!=v for k,v in expected.items()):
         raise ValueError('Unexpected historical weather units')
+    if any(pd.isna(getattr(row,k)) for k in FIELDS):
+        return None
     values = {k:float(getattr(row,k)) for k in FIELDS}
     if not all(math.isfinite(v) for v in values.values()):
         return None
@@ -47,12 +50,17 @@ def weather_values(row, station, cache):
 
 
 def main():
-    weather=pd.read_parquet(ROOT/'hourly.parquet')
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument('--root', type=Path, default=ROOT)
+    parser.add_argument('--apply', action='store_true', help='Commit validated weather and links; default rolls back')
+    args = parser.parse_args()
+    root = args.root
+    weather=pd.read_parquet(root/'hourly.parquet')
     engine=make_engine(Settings.load(outbound=False))
     @event.listens_for(engine,'do_connect')
     def timeouts(dialect,connection,cargs,params):
         params.update(read_timeout=180,write_timeout=180)
-    receipt=ROOT/('receipt-'+utcnow().strftime('%Y%m%dT%H%M%SZ')+'.json')
+    receipt=root/('receipt-'+utcnow().strftime('%Y%m%dT%H%M%SZ')+'.json')
     with ingestion_session(engine) as session:
         stations={s.station_id:s for s in session.scalars(select(Station).where(Station.source=='citibike'))}
         bikes=list(session.scalars(select(BikeObservation).join(CollectionRun).where(
@@ -71,8 +79,8 @@ def main():
             key=(r.station_id,r.weather_time.to_pydatetime())
             if key not in used:
                 continue
-            path=ROOT/'cache'/r.weather_cache_file
-            if path.resolve().parent!=(ROOT/'cache').resolve():
+            path=root/'cache'/r.weather_cache_file
+            if path.resolve().parent!=(root/'cache').resolve():
                 raise ValueError('Invalid weather cache path')
             if path.name not in caches:
                 raw=path.read_bytes()
@@ -122,8 +130,11 @@ def main():
         if len(linked)!=len(bikes) or any(linked.get(k)!=v for k,v in old_links.items()):
             raise RuntimeError('Weather link preservation/count verification failed')
         receipt.with_suffix('.prepared.json').write_text(json.dumps(audit,indent=2),encoding='utf-8')
-        session.commit()
-        audit['committed']=True
+        if args.apply:
+            session.commit()
+            audit['committed']=True
+        else:
+            session.rollback()
         receipt.write_text(json.dumps(audit,indent=2),encoding='utf-8')
         print(json.dumps(audit,indent=2),flush=True)
         print('Receipt:',receipt,flush=True)

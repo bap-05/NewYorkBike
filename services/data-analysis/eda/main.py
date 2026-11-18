@@ -10,6 +10,7 @@ from sqlalchemy.orm import Session
 from analysis.config import AnalysisOptions
 from eda.dataset import load_frame, mark_latest_slots
 from eda.plots import generate_plots
+from eda.decomposition import decompose, generate_decomposition_plots
 from eda.patterns import calendar_patterns, generate_pattern_plots
 from eda.report import json_safe, write_report
 from eda.forecast_inputs import load_forecast_estimates
@@ -54,6 +55,8 @@ def create_report(settings, options, *, start, cutoff, output, max_rows=100000):
         'correlations': correlation_tables(frame), 'scaled': scaled, 'scaling_info': scaling_info,
         **temporal_profiles(frame)}
     tables.update(calendar_patterns(frame, coverage, stations, cutoff, cadence, forecast_estimates))
+    decomposition, components = decompose(frame, stations, cadence, start, cutoff, options.timezone_name)
+    tables['decomposition'] = components
     usable = frame.loc[frame.slot_latest & frame.bike_usable]
     summary = {'version': 'eda-v1', 'generated_at_utc': utcnow().isoformat(),
         'source': settings.bike_source, 'timezone': options.timezone_name,
@@ -74,10 +77,11 @@ def create_report(settings, options, *, start, cutoff, output, max_rows=100000):
         'statistical_units': {'available_bikes': 'bikes', 'available_docks': 'docks',
             'temperature': 'C', 'humidity': '%', 'rain': 'mm per source interval', 'wind_speed': 'm/s'},
         'capacity_policy': 'current_metadata_snapshot_not_historical_capacity',
-        'scaling': scaling_info, 'day_ahead': tables['day_ahead']}
+        'scaling': scaling_info, 'day_ahead': tables['day_ahead'], 'decomposition': decomposition}
     output.mkdir(parents=True, exist_ok=True)
     figures = generate_plots(frame, stations, tables, cadence, output / 'figures')
     figures += generate_pattern_plots(frame, stations, tables, cadence, cutoff, output / 'figures')
+    figures += generate_decomposition_plots(decomposition, components, output / 'figures', options.timezone_name)
     write_report(output, frame, tables, summary, figures)
     logger.info('EDA complete: stations=%s raw_rows=%s usable_bike_rows=%s flags=%s',
         len(stations), len(frame), len(usable), len(tables['outliers']))

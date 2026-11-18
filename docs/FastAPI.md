@@ -1,4 +1,4 @@
-# FastAPI — API đọc dữ liệu Citi Bike
+# FastAPI — Dữ liệu và kích hoạt dịch vụ Citi Bike
 
 EDA trên web: `GET /api/eda` và
 `GET /api/eda/reports/{report_id}/figures/{filename}`. Chỉ đọc report hoàn tất tại
@@ -6,9 +6,10 @@ EDA trên web: `GET /api/eda` và
 request này. Chỉ trả metadata/thống kê cho phép và PNG, không công bố HTML/CSV hay
 đường dẫn máy chủ. Xem [hướng dẫn EDA](EDA.md).
 
-API ở `services/database-api/app/`, dùng SQLAlchemy model và Aiven MySQL hiện có. Mỗi request
-dùng transaction READ ONLY, chỉ đọc Silver/Gold đã công bố. Không chạy collector,
-Analysis, Clustering, Prediction hoặc train bên trong API. Không tạo schema khi
+API ở `services/database-api/app/`, dùng SQLAlchemy model và Aiven MySQL hiện có. Các GET
+công khai dùng transaction READ ONLY, chỉ đọc Silver/Gold đã công bố. Các POST quản trị
+kích hoạt Analysis, Clustering, Prediction 30 phút và dự báo ngày mai bằng tác vụ nền có xác thực; không huấn luyện.
+Không tạo schema khi
 khởi động; yêu cầu database đã có `0006_prediction` hoặc revision kế thừa hợp lệ.
 
 ## Chạy trên Windows
@@ -60,7 +61,77 @@ Swagger/OpenAPI có schema kiểu dữ liệu. Các mã nguồn được hỗ tr
 (mặc định) và `seoul` (chỉ dữ liệu legacy thực sự có trong DB). Không ghép trạm hay
 quan sát giữa hai nguồn. Giữ station_id là chuỗi, kể cả khi ID có số 0 ở đầu.
 `monitored_only=false` cho phép xem cả metadata trạm đã ngừng theo dõi; dữ liệu cũ
-không bị xóa. Không có endpoint ghi hoặc endpoint admin chưa bảo vệ.
+không bị xóa. Các endpoint ghi bên dưới yêu cầu token quản trị.
+
+## Chạy dịch vụ từ Swagger, không huấn luyện lại
+
+1. Đặt `API_SERVICE_TOKEN` trong `.env` thành chuỗi bí mật ngẫu nhiên, rồi khởi động lại API.
+   Có thể tạo chuỗi bằng `.venv\Scripts\python.exe -c "import secrets; print(secrets.token_urlsafe(32))"`.
+   Token chỉ nằm ở backend, không đưa vào biến `VITE_*` hay Git.
+2. Xuất mô hình phân cụm đã huấn luyện từ DB **trước khi xóa kết quả demo**:
+
+   ```bat
+   .venv\Scripts\python.exe -m clustering.main --export-model
+   ```
+
+   Lệnh chỉ đọc một lượt huấn luyện thành công rồi lưu scaler và tâm cụm vào
+   `CLUSTERING_MODEL_FILE` (mặc định `artifacts/clustering/model.json`), không gọi fit.
+   Có thể thêm `--training-run-id ID` để chọn lượt cụ thể. Giữ file này khi xóa đầu ra demo.
+3. Mở `http://127.0.0.1:8000/docs`, nhấn **Authorize**, dán giá trị token (không thêm `Bearer`).
+   Trong nhóm **Service activation**, chọn POST, nhấn **Try it out → Execute**.
+
+| Endpoint | Tác dụng |
+| --- | --- |
+| `POST /api/services/analysis/run` | Tính và lưu thống kê Gold từ dữ liệu hiện có |
+| `POST /api/services/prediction/run` | Dự báo 30 phút bằng mô hình đã lưu; vẫn áp dụng điều kiện dữ liệu mới |
+| `POST /api/services/day-ahead/run` | Phát hành dự báo ngày mai vào DB và chấm các giờ đã kết thúc |
+| `POST /api/services/clustering/run` | Gán nhóm bằng scaler và tâm cụm đã lưu, không chọn lại k |
+| `GET /api/services/jobs/{job_id}` | Xem trạng thái và ID kết quả trong DB |
+| `GET /api/services/clustering/model` | Xem phiên bản, cửa sổ huấn luyện và số nhóm của mô hình đã lưu |
+
+Body chạy bình thường: `{"rebuild": false}`. Khi kết quả đã bị xóa nhưng dấu lượt chạy
+thành công vẫn còn, dùng `{"rebuild": true}` để tạo lại phần thiếu. Prediction chỉ bổ sung
+bản ghi thiếu trong kỳ hiện tại, giữ nguyên các dự báo còn tồn tại và thời điểm phát hành;
+không dựng lại dự báo lịch sử. API Prediction này dành cho **30 phút**, không phải dự báo ngày mai.
+
+Để chạy dự báo ngày mai, chọn **service = `day-ahead`** trong POST
+`/api/services/{service}/run`, nhập `{"rebuild": false}` rồi Execute. Job trả
+`publication_id`, `target_date`, `available_hours` và `trained: false`. Khi thành công,
+web đọc bản đã lưu qua `GET /api/eda/day-ahead`.
+
+Nếu bản ngày mai đã bị xóa, API tính và lưu lại từ dữ liệu gốc với thời điểm phát hành mới.
+Nếu bản hoàn chỉnh còn tồn tại, chạy lại vẫn giữ nguyên ID, giá trị và giờ phát hành.
+`{"rebuild": true}` chỉ cho phép thêm phiên bản cải thiện bản thiếu giờ khi dữ liệu đáp ứng,
+giữ nguyên bản cũ. Thiếu dữ liệu để phát hành: job `skipped`, lý do
+`no_eligible_forecast_inputs`; có thể chạy lại khi dữ liệu đủ. API cũng cập nhật đối chiếu
+thực tế các bản đã lưu, dùng chung khóa `prediction` với worker 30 phút và lịch ngày mai.
+Dữ liệu ngày mai nằm trong `luot_chay_dich_vu`, các dòng `ten_dich_vu = 'day_ahead'`,
+cột `tom_tat`; xóa bảng `du_doan_so_xe` chỉ xóa dự báo 30 phút.
+
+Analysis và Clustering nhận thêm `cutoff` là ISO timestamp có múi giờ trong quá khứ.
+Để demo phân cụm bằng cửa sổ có dữ liệu đầy đủ, lấy `training_window_end` từ GET model
+làm cutoff. Đây là chạy lại dữ liệu lịch sử để demo, không phải kiểm thử ngoài mẫu.
+Prediction và `day-ahead` không nhận cutoff quá khứ. Nếu dữ liệu mới thiếu hoặc cũ, kết quả sẽ ghi rõ
+`insufficient_data`/`unavailable`, không tự giảm ngưỡng chất lượng.
+
+POST trả HTTP **202** kèm `job_id`; gọi GET job cho đến khi `status` là `success`,
+`skipped` hoặc `failed`, rồi mở DB và tải lại web. Tác vụ dùng chung khóa MySQL với CLI;
+nếu worker khác đang chạy, job báo bận để thử lại. Không tắt API giữa lúc job chạy;
+đây là tác vụ nền trong tiến trình API, không phải hàng đợi bền vững qua việc khởi động lại.
+
+Không cấu hình token: HTTP 503; sai token: 401; thiếu/hỏng mô hình phân cụm: 409.
+API không tự huấn luyện khi thiếu mô hình. Trong Docker, giữ mount `./artifacts:/app/artifacts:ro`
+của API và chuẩn bị file mô hình từ host hoặc job trước khi khởi động.
+Chỉ xóa đầu ra trên DB demo; giữ Silver, metadata trạm, registry mô hình dự báo và file phân cụm.
+
+CLI cũng hỗ trợ tái sử dụng:
+
+```bat
+.venv\Scripts\python.exe -m clustering.main --once --reuse-model
+.venv\Scripts\python.exe -m clustering.main --once --reuse-model --rebuild
+```
+
+CLI `--once`/`--schedule` không có `--reuse-model` vẫn giữ hành vi huấn luyện hiện có.
 
 ## Phân trang, khoảng thời gian và thời gian New York
 

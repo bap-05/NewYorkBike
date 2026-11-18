@@ -10,7 +10,7 @@ import json
 from math import sqrt
 from zoneinfo import ZoneInfo
 
-from sqlalchemy import select
+from sqlalchemy import func, select
 
 from analysis.config import AnalysisOptions
 from analysis.statistics import usable_bike
@@ -30,22 +30,35 @@ def daily_period(instant):
     return datetime.combine(instant.astimezone(ZONE).date(), time.min, ZONE).astimezone(UTC)
 
 
-def publish_once(session, settings):
-    """At most one successful publication per NY issue day; never backdate."""
+def publish_once(session, settings, *, repair=False):
+    """Freeze daily publications; explicit repair appends an improved revision."""
     cutoff = as_utc(utcnow())
     period = daily_period(cutoff)
     ids = list(session.scalars(select(ServiceRun.id).where(ServiceRun.service_name == SERVICE,
         ServiceRun.source == settings.bike_source, ServiceRun.scheduled_at == period,
         ServiceRun.status == 'success', ServiceRun.finished_at.is_not(None))))
-    if ids:
-        return session.get(ServiceRun, max(ids))
+    previous = session.get(ServiceRun, max(ids)) if ids else None
+    def available_keys(report):
+        return {(s['station_id'], h['target_start_utc']) for s in report['day_ahead']
+            for h in s['hourly_forecasts'] if h['status'] == 'available'
+            and h['predicted_mean_bikes'] is not None}
+    if previous:
+        old_report = previous.summary['report']
+        old_keys = available_keys(old_report)
+        total = sum(len(s['hourly_forecasts']) for s in old_report['day_ahead'])
+        if not repair or len(old_keys) == total:
+            return previous
     options = AnalysisOptions.load()
     configuration = {'source': settings.bike_source, 'station_ids': sorted(settings.station_ids),
         'expected_interval_seconds': options.expected_interval_seconds,
         'sampling_schedule': options.as_dict()['sampling_schedule'], 'minimum_coverage': .8,
         'evaluation_grace_seconds': options.ingestion_grace_seconds}
+    if previous:
+        configuration['supersedes_publication_id'] = previous.id
     digest = hashlib.sha256(json.dumps(configuration, sort_keys=True).encode()).hexdigest()
     report = build_report(session, settings, cutoff, options)
+    if previous and not old_keys < available_keys(report):
+        return previous  # Repair must fill missing hours without losing available ones.
     if not any(h['status'] == 'available' for station in report['day_ahead']
             for h in station['hourly_forecasts']):
         # Retry next tick if ingestion is down; don't freeze a whole day of empty results.
@@ -56,6 +69,8 @@ def publish_once(session, settings):
             for station in report['day_ahead'] for h in station['hourly_forecasts']):
         raise RuntimeError('Publication crossed its issue day; retry with a new cutoff')
     report.update(issued_at={'utc': issued.isoformat(), 'local': issued.astimezone(ZONE).isoformat()}, persisted=True)
+    if previous:
+        report['supersedes_publication_id'] = previous.id
     run = ServiceRun(service_name=SERVICE, source=settings.bike_source, scheduled_at=period,
         started_at=cutoff, finished_at=issued, heartbeat_at=issued, status='success', attempt_count=1,
         calculation_version=VERSION, configuration_hash=digest, configuration=configuration,
@@ -123,11 +138,11 @@ def published_runs(session, source, cutoff, days=31):
     # Sort IDs/metadata, not large JSON summaries (MySQL sort-buffer limits).
     first_day = cutoff.astimezone(ZONE).date() - timedelta(days=days - 1)
     first_period = datetime.combine(first_day, time.min, ZONE).astimezone(UTC)
-    ids = list(session.scalars(select(ServiceRun.id).where(ServiceRun.service_name == SERVICE,
+    ids = list(session.scalars(select(func.max(ServiceRun.id)).where(ServiceRun.service_name == SERVICE,
         ServiceRun.source == source, ServiceRun.status == 'success',
         ServiceRun.finished_at.is_not(None), ServiceRun.finished_at <= cutoff,
         ServiceRun.scheduled_at >= first_period
-        ).order_by(ServiceRun.scheduled_at.desc(), ServiceRun.id.desc()).limit(days + 2)))
+        ).group_by(ServiceRun.scheduled_at).order_by(ServiceRun.scheduled_at.desc()).limit(days)))
     return [session.get(ServiceRun, run_id) for run_id in ids]
 
 

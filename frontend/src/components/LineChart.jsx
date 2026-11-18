@@ -1,3 +1,4 @@
+import ChartZoom from "./ChartZoom.jsx";
 import { number, splitSegments, time } from "../lib/data.js";
 import { Empty } from "./UI.jsx";
 
@@ -19,7 +20,7 @@ export default function LineChart({
   const y = (value) => 224 - (value / maxY) * 190;
   return (
     <div className="chart">
-      <svg
+      <ChartZoom><svg
         viewBox="0 0 830 275"
         role="img"
         aria-label={`${label}. ${hasEstimates ? "Gồm mẫu thật và dữ liệu ước lượng bù thiếu; xem loại mẫu tại từng điểm." : "Chỉ hiển thị các mẫu thật; khoảng mất dữ liệu được ngắt."}`}
@@ -79,7 +80,7 @@ export default function LineChart({
             {time(new Date(t).toISOString())}
           </text>
         ))}
-      </svg>
+      </svg></ChartZoom>
       <p className="chart-note">
         Giờ New York · Di chuột vào điểm để xem mẫu ·{" "}
         {hasEstimates

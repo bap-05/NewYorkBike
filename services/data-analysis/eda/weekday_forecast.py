@@ -96,6 +96,22 @@ def update_forecasts(frame, daily, stations, cutoff, cadence, items):
                     'validation_dates': prior_dates})
                 test.extend({**r, 'selected': r[choice]} for r in samples if r['date'] == day_string)
         labels = {**LABELS, **RECENT_LABELS}
+        calendar_values = {model: [estimate(known, eligible, station.station_id, target, hour, model)[0]
+            for hour in range(24)] for model in MODELS}
+        live_values = calendar_values.get(selected)
+        if selected in RECENT_MODELS:
+            live_values = [adjusted_prediction(value, current_inputs, station.capacity, cutoff,
+                datetime.combine(target, time(hour), ZONE).astimezone(cutoff.tzinfo), selected)
+                for hour, value in enumerate(calendar_values['weekday'])]
+        if not any(value is not None for value in live_values):
+            # Validation preference is usable only if today's inputs support it.
+            # Calendar candidates can survive a short outage or an uncovered day.
+            counts = {model: sum(value is not None for value in values)
+                for model, values in calendar_values.items()}
+            most = max(counts.values())
+            if most:
+                supported = [m for m in MODELS if counts[m] == most]
+                selected = min(supported, key=lambda m: metrics(validation, m)['mae']) if validation else supported[0]
         item.update(selected_model=selected, model_label=labels[selected],
             recent_inputs=current_inputs,
             selection_history=selection_history,
@@ -144,7 +160,8 @@ def update_forecasts(frame, daily, stations, cutoff, cadence, items):
                 classification_accuracy=correct / len(observed) if ready else None)
         available = [h for h in item['hourly_forecasts'] if h['status'] == 'available']
         item.update(status='available' if available else 'insufficient_data',
-            reason=None if available else safety_reason or 'too_few_calendar_matches',
+            reason=None if available else safety_reason or next((h['reason'] for h in item['hourly_forecasts']
+                if h.get('reason')), 'too_few_calendar_matches'),
             predicted_mean_bikes=sum(h['predicted_mean_bikes'] for h in available) / len(available) if available else None,
             low_bike_hours=[h['target_start_utc'] for h in available if h['availability_class'] == 'low'])
         item['availability_class'] = availability_class(item['predicted_mean_bikes'], station.capacity) if available else None

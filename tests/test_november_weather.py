@@ -22,6 +22,8 @@ def test_archive_weather_keeps_product_retrieval_time_units_and_location():
     assert weather_values(row,station,cache)['source']=='open-meteo-historical-forecast'
     row.rain=float('nan')
     assert weather_values(row,station,cache) is None
+    row.rain=None
+    assert weather_values(row,station,cache) is None
     row.rain=-1
     with pytest.raises(ValueError,match='physical ranges'):
         weather_values(row,station,cache)

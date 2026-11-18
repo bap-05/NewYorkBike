@@ -1,3 +1,4 @@
+import ChartZoom from "./ChartZoom.jsx";
 import { useState } from "react";
 import { useApp } from "../App.jsx";
 import { get, query } from "../lib/api.js";
@@ -133,7 +134,7 @@ function SeriesChart({ station, data, kind }) {
   const tooltipStride = Math.max(1, Math.ceil(valid.length / 300));
   return (
     <>
-      <svg
+      <ChartZoom><svg
         className="calendar-svg"
         viewBox="0 0 800 280"
         role="img"
@@ -221,7 +222,7 @@ function SeriesChart({ station, data, kind }) {
               : time(new Date(first + part * (last - first)).toISOString())}
           </text>
         ))}
-      </svg>
+      </svg></ChartZoom>
       <p className="panel-footnote">
         {number(valid.length)} mẫu hợp lệ / {number(station.points.length)} mốc
         · Trục dọc: {kind === "histogram" ? "số mẫu" : "số xe có thể thuê"}.

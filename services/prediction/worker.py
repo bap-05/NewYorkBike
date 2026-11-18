@@ -95,7 +95,7 @@ def evaluate_pending(session,source,groups,options,cutoff):
     return count
 
 
-def predict_once(session,settings,options):
+def predict_once(session,settings,options, *, rebuild=False):
     cutoff = as_utc(utcnow())
     period = sampling_slot(cutoff)
     configuration = {**options.as_dict(),"source":settings.bike_source,
@@ -104,7 +104,7 @@ def predict_once(session,settings,options):
     digest = hashlib.sha256(json.dumps(configuration,sort_keys=True).encode()).hexdigest()
     run = session.scalar(select(ServiceRun).where(ServiceRun.service_name=="prediction",ServiceRun.source==settings.bike_source,
         ServiceRun.scheduled_at==period,ServiceRun.calculation_version==VERSION,ServiceRun.configuration_hash==digest))
-    if run is not None and run.status in ("success","skipped"):
+    if run is not None and run.status in ("success","skipped") and not rebuild:
         session.commit()
         return run
     for old in session.scalars(select(ServiceRun).where(ServiceRun.service_name=="prediction",
@@ -125,6 +125,9 @@ def predict_once(session,settings,options):
         model = active_model(session,settings.bike_source,cutoff,settings,options)
         baseline = baseline_model(session,settings.bike_source,cutoff)
         rows = forecast_rows(stations,groups,settings,options,cutoff,model)
+        existing = set(session.scalars(select(Prediction.station_id).where(
+            Prediction.source==settings.bike_source, Prediction.service_run_id==run_id)))
+        rows = [row for row in rows if row["station_id"] not in existing]
         issued = utcnow()
         for row in rows:
             if row["status"] != "unavailable" and row["target_at"] <= issued:
@@ -134,8 +137,8 @@ def predict_once(session,settings,options):
             session.add(Prediction(**row,service_run_id=run_id,scheduled_at=period,issued_at=issued))
         evaluated = evaluate_pending(session,settings.bike_source,groups,options,cutoff)
         counts = Counter(r["status"] for r in rows)
-        run.status = "success" if rows or evaluated else "skipped"
-        run.result_count = len(rows)
+        run.status = "success" if rows or existing or evaluated else "skipped"
+        run.result_count = len(rows) + len(existing)
         run.summary = {"statuses":dict(counts),"reasons":dict(Counter(r["reason"] for r in rows if r["reason"])),
             "evaluated_predictions":evaluated,"input_cutoff_at":cutoff.isoformat(),
             "requested_station_ids_missing_metadata":sorted(set(settings.station_ids)-{s.station_id for s in stations}),

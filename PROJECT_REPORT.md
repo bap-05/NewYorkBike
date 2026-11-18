@@ -102,6 +102,8 @@ Phân tích tổng hợp thống kê theo thời gian và công bố kết quả
 
 Mùa vụ theo tuần cần ít nhất hai tuần lịch hoàn chỉnh đạt điều kiện độ phủ. Lần kiểm tra sau khi bổ sung nguồn lưu trữ ngày 13/11/2026 có 80.190 dòng trong cửa sổ 28 ngày; cả 10 trạm đã có đường mùa vụ. Đây là kết quả đã lưu của lần chạy đó.
 
+Phần EDA được bổ sung phân rã STL ngày 18/11/2026: chuỗi gốc trung bình theo giờ được tách thành xu hướng, mùa vụ chu kỳ 24 giờ và phần dư, riêng từng trạm. Chỉ tính trên đoạn liên tục gần nhất có ít nhất 7 ngày, mỗi giờ đạt độ phủ từ 80%; không nội suy giờ thiếu hoặc dùng mẫu ước lượng. Ngắt đoạn tại thay đổi UTC offset để giữ chu kỳ theo giờ địa phương. Kết quả là phân tích hồi cứu, không dùng làm đầu vào dự báo. Xem [điều kiện phân rã và tệp xuất](docs/EDA.md#phân-rã-chuỗi-thời-gian-theo-trạm).
+
 ### Phân cụm hành vi trạm
 
 Các đặc trưng hành vi được chuẩn hóa rồi phân nhóm bằng K-means, có đánh giá lựa chọn số nhóm bằng silhouette. Đầu vào cần 7 ngày địa phương hoàn tất, độ phủ mỗi ngày tối thiểu 80% và ít nhất 6 trạm đủ điều kiện.

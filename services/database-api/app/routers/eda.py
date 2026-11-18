@@ -1,3 +1,7 @@
+import csv
+import json
+import re
+
 from typing import Annotated, Literal
 
 from fastapi import APIRouter, HTTPException, Path, Query, Request
@@ -46,3 +50,38 @@ def eda_figure(report_id: ReportId, filename: Filename, request: Request, source
         raise HTTPException(404, detail='EDA figure not found.') from None
     return FileResponse(path, media_type='image/png', headers={
         'X-Content-Type-Options': 'nosniff', 'Cache-Control': 'no-cache'})
+
+
+@router.get('/reports/{report_id}/chart-data')
+def eda_chart_data(report_id: ReportId, request: Request, source: Source = 'citibike'):
+    root = report_root(request.app.state.options)
+    try:
+        read_report(root, report_id, source, request.app.state.clock())
+        directory = child_path(root, report_id)
+        manifest = json.loads((directory / 'summary.json').read_text(encoding='utf-8'))
+        correlation = next((entry['file'] for entry in manifest.get('correlation_files', [])
+                            if entry.get('station_id') == 'ALL' and entry.get('kind') == 'correlation'), None)
+        if correlation and not re.fullmatch(r'correlation_[0-9]{2}\.csv', correlation):
+            raise ValueError('Invalid correlation file')
+        names = {'daily': 'calendar_daily.csv', 'weekly': 'calendar_weekly.csv',
+                 'monthly': 'calendar_monthly.csv', 'decomposition': 'time_series_decomposition.csv',
+                 'correlation': correlation}
+        result = {}
+        for key, name in names.items():
+            if not name:
+                result[key] = []
+                continue
+            path = (directory / name).resolve()
+            if path.parent != directory or not path.is_file():
+                result[key] = []
+                continue
+            if path.stat().st_size > 16_000_000:
+                raise ValueError('Chart data too large')
+            with path.open(encoding='utf-8-sig', newline='') as stream:
+                rows = list(csv.DictReader(stream))
+            if len(rows) > 100000:
+                raise ValueError('Too many chart rows')
+            result[key] = rows
+        return result
+    except (OSError, ValueError, KeyError, TypeError):
+        raise HTTPException(404, detail='EDA chart data not found.') from None

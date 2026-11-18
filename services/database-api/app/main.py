@@ -10,7 +10,7 @@ from fastapi.responses import JSONResponse
 from sqlalchemy.exc import SQLAlchemyError
 
 from backend.app.config import ApiOptions
-from backend.app.routers import analytics, health, overview, stations, eda
+from backend.app.routers import analytics, health, overview, stations, eda, services
 from shared.config import Settings
 from shared.database import make_engine
 from shared.logging_config import configure_logging
@@ -27,6 +27,9 @@ def create_app(*,settings=None,options=None,engine=None,clock=utcnow,auto_eda=Fa
         app.state.settings=settings if settings is not None else Settings.load(outbound=False)
         app.state.options=options if options is not None else ApiOptions.load()
         app.state.engine=engine if engine is not None else make_engine(app.state.settings)
+        # Public GET connections use MySQL READ ONLY session mode. Never borrow
+        # those pooled connections to publish worker results.
+        app.state.job_engine=engine if engine is not None else make_engine(app.state.settings)
         app.state.clock=clock
         app.state.validated_schema=None
         eda_task = None
@@ -45,9 +48,10 @@ def create_app(*,settings=None,options=None,engine=None,clock=utcnow,auto_eda=Fa
                     pass
             if engine is None:
                 app.state.engine.dispose()
+                app.state.job_engine.dispose()
 
     application=FastAPI(title=f'{APP_NAME} API',version='1.0.0',lifespan=lifespan,
-        description='Read-only public data API. UTC timestamps include New York display offsets. Workers run independently.')
+        description='Public read-only data and authenticated service activation. Activation reuses saved models without training.')
     # Config is loaded at lifespan, so middleware reads the validated allowlist per request.
     # A small ASGI wrapper below keeps .env/engine initialization out of module import.
     class DynamicCors:
@@ -61,7 +65,7 @@ def create_app(*,settings=None,options=None,engine=None,clock=utcnow,auto_eda=Fa
                 return
             if self.cors is None:
                 self.cors=CORSMiddleware(self.app,allow_origins=list(application.state.options.cors_origins),
-                    allow_credentials=False,allow_methods=['GET'],allow_headers=['Accept','Content-Type'])
+                    allow_credentials=False,allow_methods=['GET','POST'],allow_headers=['Accept','Content-Type','Authorization'])
             await self.cors(scope,receive,send)
 
     application.add_middleware(DynamicCors)
@@ -76,7 +80,7 @@ def create_app(*,settings=None,options=None,engine=None,clock=utcnow,auto_eda=Fa
         logger.error('API request failed (%s)',type(exc).__name__)
         return JSONResponse(status_code=500,content={'detail':'An unexpected server error occurred.'})
 
-    for router in (health.router,overview.router,stations.router,analytics.router,eda.router):
+    for router in (health.router,overview.router,stations.router,analytics.router,eda.router,services.router):
         application.include_router(router)
     return application
 

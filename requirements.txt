@@ -14,6 +14,7 @@ numpy>=2,<3
 pyarrow>=18,<27
 matplotlib>=3.9,<4
 seaborn>=0.13,<0.14
+statsmodels>=0.14.4,<0.16
 # Tests
 pytest>=8.3,<10
 # Editable package mapping keeps CLI/import names stable after moving into services/.

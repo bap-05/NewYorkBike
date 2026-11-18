@@ -51,7 +51,7 @@ def persist_results(session, rows):
         session.execute(statement, rows[offset:offset+200])
 
 
-def analyze_once(session, settings, options, *, cutoff=None):
+def analyze_once(session, settings, options, *, cutoff=None, rebuild=False):
     instant = period_start(as_utc(cutoff) if cutoff is not None else utcnow(), 300)
     if instant > utcnow():
         raise ValueError("Analysis cutoff cannot be in the future")
@@ -64,7 +64,7 @@ def analyze_once(session, settings, options, *, cutoff=None):
     query = select(ServiceRun).where(ServiceRun.service_name == "analysis", ServiceRun.source == source,
         ServiceRun.scheduled_at == instant, ServiceRun.calculation_version == VERSION, ServiceRun.configuration_hash == digest)
     run = session.scalar(query)
-    if run is not None and run.status in ("success", "skipped"):
+    if run is not None and run.status in ("success", "skipped") and not rebuild:
         session.commit()
         return run
     started = utcnow()

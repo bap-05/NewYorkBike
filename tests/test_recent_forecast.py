@@ -105,3 +105,33 @@ def test_combined_model_is_compared_but_not_forced_when_a_baseline_is_better():
     assert scores['adaptive_recent']['validation']['mae'] < scores['weekday']['validation']['mae']
     assert result['selected_model'] == 'seven_day'
     assert result['baseline_validation_mae'] < scores['adaptive_recent']['validation']['mae']
+
+
+@pytest.mark.parametrize('preferred', ['adaptive_recent', 'seven_day'])
+def test_live_trend_outage_uses_covered_calendar_instead_of_blank_forecast(monkeypatch, preferred):
+    from eda import recent_forecast
+    from eda.patterns import calendar_patterns
+    from eda.weekday_forecast import update_forecasts, metrics as original_metrics
+    from tests.test_time_patterns import hourly_fixture, STATION
+    frame, coverage, cutoff = hourly_fixture(days=35)
+    coverage.loc[coverage.local_date == (cutoff.astimezone(NY).date()-timedelta(days=1)).isoformat(), 'coverage'] = .1
+    cadence = SamplingCadence(1800)
+    patterns = calendar_patterns(frame, coverage, [STATION], cutoff, cadence)
+    original_inputs = recent_forecast.recent_inputs
+    def inputs(*args):
+        value = original_inputs(*args)
+        if args[4] == cutoff and value:
+            value.update(recent_samples=1, recent_coverage=1/6, latest_delta=None, recent_delta=None)
+        return value
+    def metrics(rows, model):
+        result = original_metrics(rows, model)
+        if rows and model == preferred:
+            result['mae'] = -1  # Force historical preference; live feasibility must still win.
+        return result
+    monkeypatch.setattr(recent_forecast, 'recent_inputs', inputs)
+    monkeypatch.setattr('eda.weekday_forecast.metrics', metrics)
+    result = update_forecasts(frame, patterns['daily'], [STATION], cutoff, cadence,
+        patterns['day_ahead']['items'])[0]
+    assert result['recent_inputs']['recent_samples'] == 1
+    assert result['selected_model'] in ('weekday', 'day_type', 'seven_day')
+    assert all(h['status'] == 'available' for h in result['hourly_forecasts'])

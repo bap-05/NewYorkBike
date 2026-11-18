@@ -1,4 +1,4 @@
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 import json
 import os
 from urllib.parse import urlsplit
@@ -13,6 +13,7 @@ class ApiOptions:
     prediction_max_age_seconds: int = 900
     max_range_days: int = 31
     eda_report_dir: str = 'artifacts/eda'
+    service_token: str = field(default='', repr=False)
 
     def __post_init__(self):
         if not isinstance(self.eda_report_dir, str) or not self.eda_report_dir.strip():
@@ -35,4 +36,5 @@ class ApiOptions:
             bike_max_age_seconds=integer('API_BIKE_MAX_AGE_SECONDS',600,60,900),
             prediction_max_age_seconds=integer('API_PREDICTION_MAX_AGE_SECONDS',900,60,3600),
             max_range_days=integer('API_MAX_RANGE_DAYS',31,1,90),
-            eda_report_dir=os.getenv('API_EDA_REPORT_DIR', 'artifacts/eda'))
+            eda_report_dir=os.getenv('API_EDA_REPORT_DIR', 'artifacts/eda'),
+            service_token=os.getenv('API_SERVICE_TOKEN', ''))

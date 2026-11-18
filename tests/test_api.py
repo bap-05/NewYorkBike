@@ -159,7 +159,9 @@ def test_liveness_readiness_docs_and_no_writes(api):
     assert client.get('/docs').status_code==200
     schema=client.get('/openapi.json').json()
     assert '/api/stations/{station_id}/history' in schema['paths']
-    assert not any(method in ('post','patch','put','delete') for path in schema['paths'].values() for method in path)
+    assert not any(method in ('post','patch','put','delete')
+        for name,path in schema['paths'].items() if not name.startswith('/api/services/') for method in path)
+    assert schema['paths']['/api/services/{service}/run']['post']['security'] == [{'HTTPBearer': []}]
     assert session.scalar(select(func.count()).select_from(ServiceRun))==0
 
 

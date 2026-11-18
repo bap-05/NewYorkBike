@@ -50,6 +50,9 @@ Database ----> EDA worker ----> artifacts/eda ----> FastAPI
 
 Các dịch vụ dữ liệu chạy độc lập. API đọc kết quả đã công bố; việc mở trang web không khởi chạy thu thập hoặc huấn luyện. Riêng báo cáo EDA được API kiểm tra và tạo lại trong tiến trình nền khi tính năng tự cập nhật được bật.
 
+Có thể kích hoạt Analysis, Prediction 30 phút, dự báo ngày mai (`day-ahead`) và Clustering từ Swagger bằng token quản trị.
+API phân cụm tái sử dụng mô hình đã lưu, không huấn luyện lại; xem [hướng dẫn chạy API và demo](docs/FastAPI.md#chạy-dịch-vụ-từ-swagger-không-huấn-luyện-lại).
+
 ## Cấu trúc thư mục
 
 ```text
@@ -209,6 +212,8 @@ Khi `EDA_AUTO_UPDATE=true`, API kiểm tra thay đổi dữ liệu khi khởi đ
 ```
 
 Kết quả gồm HTML, JSON, CSV và ảnh biểu đồ trong `artifacts/eda/`. API đọc báo cáo hoàn tất gần nhất tại `API_EDA_REPORT_DIR`. Tự cập nhật chỉ hoạt động khi API đang chạy.
+
+Trong EDA, chọn **Phân rã xu hướng – mùa vụ – phần dư** rồi chọn trạm để xem bốn thành phần của STL theo chu kỳ 24 giờ. Cần ít nhất 7 ngày liên tục, mỗi giờ đạt 80% số mẫu hợp lệ; kết quả số được xuất vào `time_series_decomposition.csv`. Xem [quy tắc phân rã](docs/EDA.md#phân-rã-chuỗi-thời-gian-theo-trạm).
 
 ## Kiểm thử
 

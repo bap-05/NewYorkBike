@@ -75,6 +75,20 @@ def test_only_whitelisted_png_manifest_files_are_served(eda_api):
     assert client.get('/api/eda/reports/test-report/figures/summary.json').status_code == 422
 
 
+def test_decomposition_station_images_are_manifest_scoped(eda_api):
+    from eda.decomposition import image_name
+    client, root = eda_api
+    directory, payload = snapshot(root)
+    name = image_name('001')
+    (directory / 'figures' / name).write_bytes(b'\x89PNG\r\n\x1a\n' + b'test-only')
+    payload['figures'].append({'file':f'figures/{name}', 'title':'Decomposition', 'station_id':'001'})
+    (directory / 'summary.json').write_text(json.dumps(payload), encoding='utf-8')
+    item = client.get('/api/eda').json()['item']
+    assert item['figures'][-1]['station_id'] == '001'
+    assert client.get(f'/api/eda/reports/test-report/figures/{name}').status_code == 200
+    assert client.get('/api/eda/reports/test-report/figures/decomposition_aaaaaaaaaaaaaaaa.png').status_code == 404
+
+
 
 def test_extended_time_series_images_and_day_ahead_contract(eda_api):
     client, root = eda_api
@@ -118,3 +132,22 @@ def test_invalid_or_unfinished_reports_are_not_published(eda_api, change):
         assert client.get('/api/eda/reports/test-report/figures/histograms.png').status_code == 404
     else:
         assert response.json()['status'] == 'missing'
+
+
+def test_chart_data_is_report_scoped_and_preserves_values(eda_api):
+    client, root = eda_api
+    directory, payload = snapshot(root)
+    (directory / 'calendar_weekly.csv').write_text('station_id,period,complete,mean_bikes\n001,2026-01,True,0\n', encoding='utf-8')
+    (directory / 'correlation_00.csv').write_text(',available_bikes\navailable_bikes,1.0\n', encoding='utf-8')
+    payload['correlation_files'] = [{'station_id': 'ALL', 'kind': 'correlation', 'file': 'correlation_00.csv'}]
+    (directory / 'summary.json').write_text(json.dumps(payload), encoding='utf-8')
+    response = client.get('/api/eda/reports/test-report/chart-data')
+    assert response.status_code == 200
+    assert response.json()['weekly'][0]['station_id'] == '001'
+    assert response.json()['weekly'][0]['mean_bikes'] == '0'
+    assert response.json()['correlation'][0]['available_bikes'] == '1.0'
+    assert response.json()['decomposition'] == []
+    assert client.get('/api/eda/reports/test-report/chart-data?source=seoul').status_code == 404
+    payload['correlation_files'][0]['file'] = '../summary.json'
+    (directory / 'summary.json').write_text(json.dumps(payload), encoding='utf-8')
+    assert client.get('/api/eda/reports/test-report/chart-data').status_code == 404

@@ -66,7 +66,7 @@ def input_signature(settings, options, *, now, days, max_rows):
                 .order_by(Station.source, Station.station_id)).all()
     finally:
         engine.dispose()
-    payload = dict(version=1, source=settings.bike_source, station_ids=settings.station_ids,
+    payload = dict(version=2, source=settings.bike_source, station_ids=settings.station_ids,
         days=days, max_rows=max_rows, options=options.as_dict(),
         local_day=now.astimezone(ZoneInfo(options.timezone_name)).date().isoformat(),
         runs=[str(v) for v in runs], weather=[str(v) for v in weather],

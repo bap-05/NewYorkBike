@@ -1,7 +1,7 @@
+import DynamicEda from "./DynamicEda.jsx";
 import { useEffect, useState } from "react";
-import { Expand } from "lucide-react";
 import { useApp } from "../App.jsx";
-import { get, imageUrl } from "../lib/api.js";
+import { get } from "../lib/api.js";
 import { number } from "../lib/data.js";
 import { useResource } from "../lib/useResource.js";
 import { Empty, Feedback, Panel } from "./UI.jsx";
@@ -35,12 +35,15 @@ export default function EdaPanel({ stations }) {
     const timer = setInterval(() => setTick((value) => value + 1), 60000);
     return () => clearInterval(timer);
   }, []);
-  const report = useResource((signal) => get("/eda", signal), "eda", `${revision}:${tick}`);
+  const report = useResource(
+    (signal) => get("/eda", signal),
+    "eda",
+    `${revision}:${tick}`,
+  );
   const [selectedFigure, setSelectedFigure] = useState("line_day.png");
+  const [decompositionStation, setDecompositionStation] = useState("");
   return (
-    <Panel
-      title="Khám phá dữ liệu (EDA)"
-    >
+    <Panel title="Khám phá dữ liệu (EDA)">
       <Feedback resource={report} retry={refresh}>
         {(data) => {
           if (!data.item)
@@ -52,7 +55,16 @@ export default function EdaPanel({ stations }) {
             );
           const item = data.item;
           const visibleFigures = requiredCharts(item.figures);
+          const decompositions = visibleFigures.filter((f) =>
+            f.filename.startsWith("decomposition_"),
+          );
+          const isDecomposition = selectedFigure === "decomposition";
           const figure =
+            (isDecomposition
+              ? decompositions.find(
+                  (f) => f.station_id === decompositionStation,
+                ) || decompositions[0]
+              : null) ||
             visibleFigures.find((f) => f.filename === selectedFigure) ||
             visibleFigures[0];
           const calendarFigure =
@@ -84,27 +96,48 @@ export default function EdaPanel({ stations }) {
                   Biểu đồ EDA
                   <select
                     aria-label="Biểu đồ EDA"
-                    value={figure?.filename || ""}
+                    value={
+                      isDecomposition && decompositions.length
+                        ? "decomposition"
+                        : figure?.filename || ""
+                    }
                     onChange={(e) => setSelectedFigure(e.target.value)}
                   >
-                    {visibleFigures.map((f) => (
-                      <option key={f.filename} value={f.filename}>
-                        {figureLabel(f)}
+                    {visibleFigures
+                      .filter((f) => !f.filename.startsWith("decomposition_"))
+                      .map((f) => (
+                        <option key={f.filename} value={f.filename}>
+                          {figureLabel(f)}
+                        </option>
+                      ))}
+                    {decompositions.length > 0 && (
+                      <option value="decomposition">
+                        Phân rã xu hướng – mùa vụ – phần dư
                       </option>
-                    ))}
+                    )}
                   </select>
                 </label>
-                {figure && !calendarFigure && (
-                  <a
-                    className="button secondary"
-                    href={imageUrl(figure.url)}
-                    target="_blank"
-                    rel="noreferrer"
-                  >
-                    <Expand size={15} />
-                    Mở ảnh lớn
-                  </a>
+                {isDecomposition && decompositions.length > 0 && (
+                  <label>
+                    Trạm phân rã chuỗi thời gian
+                    <select
+                      aria-label="Trạm phân rã chuỗi thời gian"
+                      value={figure?.station_id || ""}
+                      onChange={(event) =>
+                        setDecompositionStation(event.target.value)
+                      }
+                    >
+                      {decompositions.map((f) => (
+                        <option key={f.filename} value={f.station_id}>
+                          {stations.find((s) => s.station_id === f.station_id)
+                            ?.name ||
+                            f.title.replace("Phân rã chuỗi thời gian · ", "")}
+                        </option>
+                      ))}
+                    </select>
+                  </label>
                 )}
+
               </div>
               {calendarFigure ? (
                 <CalendarExplorer
@@ -114,44 +147,14 @@ export default function EdaPanel({ stations }) {
                   stations={stations}
                 />
               ) : figure ? (
-                <figure className="eda-figure">
-                  <EdaImage
-                    key={`${item.report_id}:${figure.filename}:${revision}`}
-                    figure={figure}
-                  />
-                  <figcaption>
-                    <strong>
-                      {figures[figure.filename] || figure.title}
-                    </strong>
-                    
-                  </figcaption>
-                </figure>
+                <DynamicEda key={`${item.report_id}:${figure.filename}`} reportId={item.report_id} figure={figure} stations={stations} revision={revision} refresh={refresh} />
               ) : (
                 <Empty title="Báo cáo chưa có hình được công bố" />
               )}
-
             </div>
           );
         }}
       </Feedback>
     </Panel>
-  );
-}
-
-function EdaImage({ figure }) {
-  const [failed, setFailed] = useState(false);
-  if (failed)
-    return (
-      <Empty title="Không tải được ảnh EDA">
-        Bấm Làm mới để kiểm tra lại báo cáo hoặc mở ảnh lớn trong thẻ riêng.
-      </Empty>
-    );
-  return (
-    <img
-      className="eda-image"
-      src={imageUrl(figure.url)}
-      alt={figures[figure.filename] || figure.title}
-      onError={() => setFailed(true)}
-    />
   );
 }

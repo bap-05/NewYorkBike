@@ -1732,3 +1732,12 @@ footer > span {
     scroll-behavior: auto !important;
   }
 }
+
+.chart-zoom-controls { display: flex; gap: .5rem; align-items: center; margin: .5rem 0; }
+.chart-zoom-controls button { min-width: 2rem; padding: .3rem .6rem; }
+.chart-zoom-scroll { overflow: auto; max-width: 100%; }
+.chart-zoom-scroll > div > svg { width: 100%; height: auto; }
+.dynamic-chart { width: 100%; height: auto; min-width: 600px; }
+.dynamic-chart text { fill: #405c57; font-size: 11px; }
+
+.chart .chart-zoom-scroll svg { max-height: none; }

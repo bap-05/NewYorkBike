@@ -65,6 +65,23 @@ def history(session,days=14):
         index+=1
 
 
+def test_rebuild_only_restores_missing_current_forecasts(session,prediction_settings):
+    from sqlalchemy import delete
+    config = replace(prediction_settings, station_ids=())
+    add_sample(session,NOW-timedelta(minutes=4),7,weather=False,station_id="TEST-A")
+    add_sample(session,NOW-timedelta(minutes=3),12,weather=False,station_id="TEST-B")
+    first = worker.predict_once(session,config,PredictionOptions())
+    existing = session.scalar(select(Prediction).where(Prediction.station_id=="TEST-A"))
+    original = (existing.id, existing.issued_at, existing.raw_predicted_bikes, existing.target_at)
+    session.execute(delete(Prediction).where(Prediction.station_id=="TEST-B"))
+    session.commit()
+    repeat = worker.predict_once(session,config,PredictionOptions(),rebuild=True)
+    session.refresh(existing)
+    assert repeat.id == first.id and repeat.result_count == 2
+    assert (existing.id, existing.issued_at, existing.raw_predicted_bikes, existing.target_at) == original
+    assert session.scalar(select(func.count()).select_from(Prediction)) == 2
+
+
 def test_baseline_real_target_utc_and_idempotent_period(session,prediction_settings):
     at=NOW-timedelta(minutes=4)
     b=add_sample(session,at,7,weather=False)

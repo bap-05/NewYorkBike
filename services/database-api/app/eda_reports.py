@@ -37,7 +37,7 @@ def child_path(root, report_id):
 
 
 def image_path(directory, filename):
-    if filename not in IMAGE_NAMES:
+    if filename not in IMAGE_NAMES and not re.fullmatch(r'decomposition_[a-p]{16}\.png', filename):
         raise ValueError('Unsupported EDA image')
     path = (directory / 'figures' / filename).resolve()
     if not path.is_relative_to(directory) or not path.is_file() or path.stat().st_size > 16_000_000:
@@ -75,11 +75,11 @@ def read_report(root, report_id, source, now):
         if row['file'] != f'figures/{name}':
             continue
         image_path(directory, name)
-        figures.append({'filename': name, 'title': row['title'],
+        figures.append({'filename': name, 'title': row['title'], 'station_id':row.get('station_id'),
             'url': f'/api/eda/reports/{report_id}/figures/{name}?source={source}'})
     statistics = [{key: row[key] for key in STAT_FIELDS} for row in data['descriptive_statistics']
                   if row['column'] in STAT_COLUMNS]
-    if len(statistics) > 10000 or len(figures) > len(IMAGE_NAMES):
+    if len(statistics) > 10000 or len(figures) > len(IMAGE_NAMES) + 100:
         raise ValueError('Too many EDA results')
     forecast = data.get('day_ahead') or {}
     if not isinstance(forecast, dict) or not isinstance(forecast.get('items', []), list):
