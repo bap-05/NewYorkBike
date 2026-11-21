@@ -237,19 +237,58 @@ npx playwright install chromium
 npm run test:browser
 ```
 
-## Docker và GitHub Actions
+## Chạy bằng Docker
 
-Docker Compose sử dụng MySQL/Aiven hiện có qua `.env`, không tạo một MySQL mới:
+Trên máy chạy, cần Docker đang hoạt động với Linux containers, Docker Compose v2 và Internet để tải image và kết nối MySQL Aiven. Docker tự cài các phụ thuộc Python và Node.js khi build.
 
-```bat
-docker compose up --build database-api frontend
+1. Chép hoặc clone thư mục dự án lên máy mới.
+2. Nhận riêng file `.env` và chứng chỉ Aiven `certs/ca.pem`. Đặt chúng trong thư mục dự án và kiểm tra `MYSQL_SSL_CA=certs/ca.pem` trong `.env`. Máy chạy cần được phép kết nối MySQL Aiven.
+3. Mở terminal tại thư mục có `docker-compose.yml` và chạy:
+
+```powershell
+docker compose up --build -d --wait
+docker compose ps
 ```
 
-Website Docker chạy tại http://127.0.0.1:8080. Có thể gọi riêng một tác vụ, ví dụ:
+- Website: http://127.0.0.1:8080
+- Swagger: http://127.0.0.1:8000/docs
+- Kiểm tra API kết nối được database và schema sẵn sàng: http://127.0.0.1:8000/health/ready
 
-```bat
-docker compose --profile jobs run --rm data-ingestion
+Để xóa container của NewYorkBike và dựng lại từ dự án:
+
+```powershell
+docker compose down
+docker compose up --build -d --wait
 ```
+
+`down` xóa container và mạng Compose của dự án. Dữ liệu MySQL nằm trên Aiven, còn báo cáo EDA và model phân cụm (nếu đã xuất) nằm trong thư mục `artifacts/` trên máy. Khi chuyển máy và cần chạy lại phân cụm từ Swagger, chép thêm file model đã xuất theo [hướng dẫn FastAPI](docs/FastAPI.md).
+
+Nếu cổng 8000 hoặc 8080 đang được dùng, dừng tiến trình đang giữ cổng rồi chạy lại. Xem log bằng `docker compose logs --tail=100 database-api frontend`.
+
+## Tác vụ dữ liệu và GitHub Actions
+
+`docker compose up --build -d --wait` khởi động sáu container:
+
+| Container | Công việc |
+| --- | --- |
+| `frontend` | Phục vụ website React và chuyển request `/api` đến Database API. |
+| `database-api` | Cung cấp FastAPI để web đọc dữ liệu và kết quả trong MySQL Aiven. |
+| `data-ingestion` | Lấy trạng thái xe và thời tiết rồi lưu vào Aiven mỗi 5 phút. |
+| `data-analysis` | Tính thống kê từ dữ liệu đã thu và lưu kết quả mỗi 5 phút. |
+| `clustering` | Phân nhóm các trạm theo hành vi và lưu kết quả hằng ngày lúc 02:00 New York. |
+| `prediction` | Kiểm tra phát hành và đối chiếu dự báo mỗi 5 phút bằng các phương pháp đã cấu hình. |
+
+Các worker chạy một lượt khi khởi động, sau đó tiếp tục theo lịch. MySQL chạy trên Aiven. Chỉ chọn một nơi chạy lịch cho mỗi worker trên cùng database. Nếu dùng lịch trong Docker, tắt lịch tương ứng trên GitHub Actions hoặc máy khác.
+
+Container thu thập mặc định gọi Citi Bike và Open-Meteo trực tiếp. Nếu mạng yêu cầu proxy, đặt `DOCKER_INGESTION_USE_PROXY=true` và cung cấp `OUTBOUND_PROXY_URLS` hợp lệ trong `.env`.
+
+Nếu chỉ muốn mở web để xem dữ liệu trên Aiven trong khi lịch chạy ở nơi khác:
+
+```powershell
+docker compose up --build -d --wait database-api frontend
+```
+
+Xem hoạt động của bốn worker bằng `docker compose logs --tail=50 data-ingestion data-analysis clustering prediction`.
 
 Các workflow trong `.github/workflows/` hỗ trợ chạy thủ công và theo lịch, dùng secrets/variables của repository thay cho `.env` trên máy cá nhân. Lịch cloud được cấu hình riêng với lịch CLI; xem [hướng dẫn GitHub Actions và Aiven](docs/Deploy_GitHub_Actions_Aiven.md).
 

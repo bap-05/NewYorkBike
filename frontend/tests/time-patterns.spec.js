@@ -68,8 +68,8 @@ test("time-series requirements and next-day forecasts use the live snapshot", as
     item.day_ahead.find((row) => row.low_bike_hours?.length) ||
     item.day_ahead[0];
   await page
-    .getByRole("combobox", { name: "Trạm dự báo ngày mai", exact: true })
-    .selectOption(chosen.station_id);
+    .getByRole("button", { name: chosen.station_name, exact: true })
+    .click();
   const hourRows = dayPanel.locator(".hourly-forecast-column");
   await expect(hourRows).toHaveCount(chosen.hourly_forecasts.length);
   await page.getByRole("checkbox", { name: "Chỉ xem giờ ít xe" }).check();

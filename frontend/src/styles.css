@@ -712,6 +712,38 @@ tbody tr:hover {
 .compact-map .leaflet-container {
   height: 320px;
 }
+.forecast-station-picker {
+  display: grid;
+  grid-template-columns: minmax(0, 16rem) minmax(0, 1fr);
+  gap: 1rem;
+}
+.forecast-station-results {
+  list-style: none;
+  padding: 0;
+  margin: .5rem 0 0;
+  max-height: 268px;
+  overflow: auto;
+}
+.forecast-station-results button {
+  width: 100%;
+  text-align: left;
+  padding: .55rem .75rem;
+  border: 1px solid var(--line);
+  border-radius: .4rem;
+  margin-bottom: .25rem;
+  background: white;
+  color: inherit;
+  cursor: pointer;
+}
+.forecast-station-results button:hover,
+.forecast-station-results button[aria-pressed="true"] {
+  background: #e3f2ed;
+  border-color: #167c70;
+}
+@media (max-width: 700px) {
+  .forecast-station-picker { grid-template-columns: minmax(0, 1fr); }
+  .forecast-station-results { max-height: 150px; }
+}
 .map-legend {
   display: flex;
   gap: 18px;

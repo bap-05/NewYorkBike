@@ -9,6 +9,12 @@ const station = {station_id:"test-issued",station_name:"Isolated station",capaci
 const payload = (stations) => ({status:"available",item:{day_ahead:stations}});
 
 test.beforeEach(async ({page}) => {
+  await page.route("**/api/stations?*", (route) => route.fulfill({ json: {
+    pagination: { has_more: false }, items: [
+      { station_id: station.station_id, name: station.station_name, latitude: 40.75, longitude: -73.99 },
+      { station_id: "other", name: "Other station", latitude: 40.76, longitude: -73.98 },
+    ],
+  } }));
   await page.clock.setFixedTime(new Date("2026-11-17T15:00:00Z"));
 });
 
@@ -36,7 +42,7 @@ test("station filter changes comparison and missing actuals remain blank",async 
     issued_evaluation:{items:[{...row,status:"awaiting_data",actual_bikes:null}]}};
   await page.route("**/api/eda/day-ahead",route=>route.fulfill({json:payload([station,other])}));
   await page.goto("/predictions");
-  await page.getByLabel("Trạm dự báo ngày mai").selectOption("other");
+  await page.getByRole("button", { name: "Other station", exact: true }).click();
   const comparison=page.getByRole("region",{name:"Chênh lệch dự báo hôm qua"});
   await expect(comparison.getByRole("heading")).toContainText("Other station");
   await expect(comparison.locator("tbody tr td").nth(2)).toHaveText("—");

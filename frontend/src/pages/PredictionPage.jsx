@@ -51,7 +51,7 @@ function PredictionContent({ stations }) {
       >
         <RefreshButton />
       </PageTitle>
-      <DayAheadPanel />
+      <DayAheadPanel stations={stations} />
       <Feedback resource={forecasts} retry={refresh}>
         {(rows) => {
           return (

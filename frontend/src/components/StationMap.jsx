@@ -4,6 +4,7 @@ import {
   TileLayer,
   CircleMarker,
   Popup,
+  Tooltip,
   useMap,
   ZoomControl,
 } from "react-leaflet";
@@ -14,10 +15,12 @@ import { clusterColor } from "../lib/clusters.js";
 
 function Focus({ station }) {
   const map = useMap();
+  const latitude = station?.latitude;
+  const longitude = station?.longitude;
   useEffect(() => {
-    if (station)
-      map.flyTo([station.latitude, station.longitude], 15, { duration: 0.7 });
-  }, [station, map]);
+    if (Number.isFinite(latitude) && Number.isFinite(longitude))
+      map.flyTo([latitude, longitude], 15, { duration: 0.7 });
+  }, [latitude, longitude, map]);
   return null;
 }
 function FitStations({ stations }) {
@@ -42,6 +45,8 @@ export default function StationMap({
   selected,
   compact = false,
   clusterMembers = null,
+  onSelect,
+  focusSelected = true,
 }) {
   const [tileError, setTileError] = useState(false);
   const membership = new Map(
@@ -58,7 +63,7 @@ export default function StationMap({
       <MapContainer
         center={[40.748, -73.986]}
         zoom={12}
-        scrollWheelZoom={false}
+        scrollWheelZoom
         zoomControl={false}
       >
         <ZoomControl zoomInTitle="Phóng to" zoomOutTitle="Thu nhỏ" />
@@ -69,14 +74,15 @@ export default function StationMap({
           eventHandlers={{ tileerror: () => setTileError(true) }}
         />
         <FitStations stations={located} />
-        <Focus station={selected} />
+        <Focus station={focusSelected ? selected : null} />
         {located.map((s) => (
           <CircleMarker
             key={s.station_id}
             center={[s.latitude, s.longitude]}
             radius={selected?.station_id === s.station_id ? 11 : 8}
+            eventHandlers={onSelect ? { click: () => onSelect(s.station_id) } : undefined}
             pathOptions={{
-              color: "white",
+              color: onSelect && selected?.station_id === s.station_id ? "#183d5a" : "white",
               weight: 3,
               fillColor: clusterMembers
                 ? clusterColor(membership.get(s.station_id))
@@ -84,6 +90,7 @@ export default function StationMap({
               fillOpacity: 1,
             }}
           >
+            {onSelect && <Tooltip>{s.name}</Tooltip>}
             <Popup>
               <div className="map-popup">
                 <strong>{s.name}</strong>

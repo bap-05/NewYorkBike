@@ -18,8 +18,8 @@ test("chart type and station selectors keep each station's published forecasts",
     await page.getByLabel("Dạng biểu đồ dự báo").selectOption(type);
     for (const station of stations) {
       await page
-        .getByLabel("Trạm dự báo ngày mai")
-        .selectOption(station.station_id);
+        .getByRole("button", { name: station.station_name, exact: true })
+        .click();
       await expect(page.locator(".hourly-station-name")).toContainText(
         station.station_name,
       );
@@ -77,8 +77,8 @@ test("hourly bars match the published forecast and expose evidence on selection"
   expect(station).toBeTruthy();
   await page.goto("/predictions");
   await page
-    .getByLabel("Trạm dự báo ngày mai")
-    .selectOption(station.station_id);
+    .getByRole("button", { name: station.station_name, exact: true })
+    .click();
   const columns = page.locator(".hourly-forecast-column");
   await expect(columns).toHaveCount(station.hourly_forecasts.length);
   const index = station.hourly_forecasts.findIndex(

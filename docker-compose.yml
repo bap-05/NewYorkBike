@@ -1,4 +1,4 @@
-# Dùng MySQL/Aiven hiện có; worker chỉ chạy khi được gọi rõ ràng.
+# Mỗi worker chạy theo lịch riêng và dùng MySQL/Aiven hiện có.
 x-python: &python
   build:
     context: .
@@ -13,6 +13,12 @@ services:
   database-api:
     <<: *python
     ports: ["127.0.0.1:8000:8000"]
+    healthcheck:
+      test: ["CMD", "python", "-c", "from urllib.request import urlopen; urlopen('http://127.0.0.1:8000/health/live', timeout=3).close()"]
+      interval: 5s
+      timeout: 5s
+      retries: 12
+      start_period: 15s
     volumes:
       - ./certs:/app/certs:ro
       - ./artifacts:/app/artifacts:ro
@@ -23,20 +29,20 @@ services:
       context: .
       dockerfile: frontend/Dockerfile
     ports: ["127.0.0.1:8080:80"]
-    depends_on: [database-api]
+    depends_on:
+      database-api:
+        condition: service_healthy
   data-ingestion:
     <<: *python
-    profiles: [jobs]
-    command: [python, -m, ingestion.main, --once]
+    environment:
+      OUTBOUND_PROXY_ENABLED: ${DOCKER_INGESTION_USE_PROXY:-false}
+    command: [python, -m, ingestion.main, --schedule, --interval-minutes, "5"]
   data-analysis:
     <<: *python
-    profiles: [jobs]
-    command: [python, -m, analysis.main, --once]
+    command: [python, -m, analysis.main, --schedule]
   clustering:
     <<: *python
-    profiles: [jobs]
-    command: [python, -m, clustering.main, --once]
+    command: [python, -m, clustering.main, --schedule]
   prediction:
     <<: *python
-    profiles: [jobs]
-    command: [python, -m, prediction.main, --once]
+    command: [python, -m, prediction.main, --schedule]

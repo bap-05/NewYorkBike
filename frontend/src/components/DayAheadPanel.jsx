@@ -5,6 +5,7 @@ import { number } from "../lib/data.js";
 import { useResource } from "../lib/useResource.js";
 import { Empty, Feedback, Panel } from "./UI.jsx";
 import HourlyForecastChart from "./HourlyForecastChart.jsx";
+import StationMap from "./StationMap.jsx";
 import YesterdayForecastComparison from "./YesterdayForecastComparison.jsx";
 import { usableForecast } from "../lib/hourlyForecast.js";
 
@@ -33,7 +34,7 @@ function tomorrowInNewYork() {
     .slice(0, 10);
 }
 
-export default function DayAheadPanel() {
+export default function DayAheadPanel({ stations }) {
   const { revision, refresh } = useApp();
   const [tick, setTick] = useState(0);
   useEffect(() => {
@@ -46,24 +47,73 @@ export default function DayAheadPanel() {
     `${revision}:${tick}`,
   );
   const [stationId, setStationId] = useState("");
+  const [query, setQuery] = useState("");
   const [onlyLow, setOnlyLow] = useState(false);
   const [chartType, setChartType] = useState("bar");
   const tomorrow = tomorrowInNewYork();
+  const defaultId = report.data?.item?.day_ahead?.[0]?.station_id;
+  const station = stations.find((row) => row.station_id === (stationId || defaultId)) || stations[0];
+  const search = query.trim().toLowerCase();
+  const matches = search
+    ? stations.filter((row) => row.name.toLowerCase().includes(search))
+    : stations;
+  function selectStation(id) {
+    setStationId(id);
+    setQuery("");
+  }
   return (
     <Panel
       className="day-ahead-panel"
       title="Dự báo và phân loại ngày mai"
     >
+      <div className="forecast-station-picker">
+        <div>
+          <label className="search-box">
+            Tìm trạm dự báo ngày mai
+            <input
+              type="search"
+              value={query}
+              onChange={(event) => setQuery(event.target.value)}
+              placeholder="Nhập tên trạm"
+            />
+          </label>
+          {matches.length ? (
+            <ul className="forecast-station-results" aria-label="Các trạm dự báo">
+              {matches.map((row) => (
+                <li key={row.station_id}>
+                  <button
+                    type="button"
+                    aria-pressed={row.station_id === station.station_id}
+                    onClick={() => selectStation(row.station_id)}
+                  >
+                    {row.name}
+                  </button>
+                </li>
+              ))}
+            </ul>
+          ) : (
+            <p role="status">Không tìm thấy trạm phù hợp.</p>
+          )}
+        </div>
+        <StationMap
+          stations={stations}
+          selected={station}
+          compact
+          onSelect={selectStation}
+          focusSelected={Boolean(stationId)}
+        />
+      </div>
+      <p role="status">Trạm đang xem: <strong>{station.name}</strong></p>
       <Feedback resource={report} retry={refresh}>
         {(data) => {
-          const stations = data.item?.day_ahead || [];
-          const selected =
-            stations.find((r) => r.station_id === stationId) || stations[0];
+          const selected = data.item?.day_ahead?.find(
+            (row) => row.station_id === station.station_id,
+          );
           if (!selected?.hourly_forecasts?.length)
             return (
               <>
-                <Empty title="Chưa có bản dự báo ngày mai được lưu hôm nay">
-                  Dịch vụ Prediction cần chạy để phát hành dự báo mới. Web chỉ đọc bản đã lưu trong DB.
+                <Empty title="Chưa có dự báo ngày mai cho trạm này">
+                  Bạn có thể chọn trạm khác trên bản đồ hoặc trong danh sách.
                 </Empty>
                 {(data.history || []).map((station) => (
                   <details key={station.station_id} className="forecast-details">
@@ -84,20 +134,6 @@ export default function DayAheadPanel() {
           return (
             <>
               <div className="toolbar">
-                <label>
-                  Trạm dự báo ngày mai
-                  <select
-                    aria-label="Trạm dự báo ngày mai"
-                    value={selected.station_id}
-                    onChange={(event) => setStationId(event.target.value)}
-                  >
-                    {stations.map((row) => (
-                      <option value={row.station_id} key={row.station_id}>
-                        {row.station_name}
-                      </option>
-                    ))}
-                  </select>
-                </label>
                 <label>
                   Dạng biểu đồ dự báo
                   <select
