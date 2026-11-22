@@ -703,36 +703,73 @@ tbody tr:hover {
   position: relative;
 }
 .leaflet-container {
-  height: 570px;
+  height: 420px;
   width: 100%;
   background: #e7ece8;
   font-family: "Be Vietnam Pro", sans-serif;
   z-index: 0;
 }
 .compact-map .leaflet-container {
-  height: 320px;
+  height: 260px;
 }
 .forecast-station-picker {
   display: grid;
-  grid-template-columns: minmax(0, 16rem) minmax(0, 1fr);
+  grid-template-columns: minmax(220px, 280px) minmax(0, 1fr);
   gap: 1rem;
+  margin: 0 24px 18px;
+}
+.forecast-station-sidebar,
+.forecast-station-picker > .map-shell {
+  min-width: 0;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: #fff;
+}
+.forecast-station-sidebar {
+  display: flex;
+  flex-direction: column;
+  padding: 12px;
+}
+.forecast-search-label {
+  display: block;
+  margin-bottom: 6px;
+  font-size: 12px;
+  font-weight: 600;
+}
+.forecast-station-sidebar .search-box svg { flex: none; color: var(--muted); }
+.forecast-station-sidebar .search-box input { min-width: 0; }
+.forecast-station-picker > .map-shell { overflow: hidden; }
+.forecast-station-picker .leaflet-container { height: 275px; }
+.forecast-station-picker .map-legend { padding: 9px 12px; gap: 10px; }
+.forecast-current-station {
+  display: grid;
+  gap: 3px;
+  margin: auto 0 0;
+  padding: 9px 8px 0;
+  border-top: 1px solid var(--line);
+  font-size: 13px;
+}
+.forecast-current-station span, .forecast-search-empty {
+  color: var(--muted);
+  font-size: 12px;
 }
 .forecast-station-results {
   list-style: none;
   padding: 0;
-  margin: .5rem 0 0;
-  max-height: 268px;
+  margin: .5rem 0;
+  max-height: 170px;
   overflow: auto;
 }
 .forecast-station-results button {
   width: 100%;
   text-align: left;
-  padding: .55rem .75rem;
-  border: 1px solid var(--line);
+  padding: .45rem .55rem;
+  border: 1px solid transparent;
   border-radius: .4rem;
-  margin-bottom: .25rem;
+  margin-bottom: 2px;
   background: white;
   color: inherit;
+  font-size: 13px;
   cursor: pointer;
 }
 .forecast-station-results button:hover,
@@ -741,8 +778,9 @@ tbody tr:hover {
   border-color: #167c70;
 }
 @media (max-width: 700px) {
-  .forecast-station-picker { grid-template-columns: minmax(0, 1fr); }
-  .forecast-station-results { max-height: 150px; }
+  .forecast-station-picker { grid-template-columns: minmax(0, 1fr); margin-inline: 14px; }
+  .forecast-station-results { max-height: 115px; }
+  .forecast-station-picker .leaflet-container { height: 220px; }
 }
 .map-legend {
   display: flex;
@@ -758,6 +796,49 @@ tbody tr:hover {
   display: flex;
   align-items: center;
   gap: 6px;
+}
+.cluster-map-legend {
+  position: relative;
+  gap: 6px;
+  padding: 8px 12px;
+}
+.cluster-map-legend button {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 34px;
+  padding: 6px 9px;
+  border: 1px solid transparent;
+  border-radius: 6px;
+  background: transparent;
+  color: var(--ink);
+  font-size: 11px;
+}
+.cluster-map-legend button[aria-expanded="true"] {
+  background: #edf5ef;
+  border-color: var(--line);
+}
+.cluster-legend-detail {
+  position: absolute;
+  inset: auto 0 100%;
+  z-index: 2;
+  width: min(100%, 360px);
+  max-height: 270px;
+  overflow: auto;
+  padding: 14px;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: #fff;
+  color: var(--ink);
+  box-shadow: 0 6px 18px #203e3120;
+  font-size: 12px;
+}
+.cluster-legend-detail h3 { display: flex; align-items: center; gap: 7px; margin: 0 0 6px; }
+.cluster-legend-detail p { margin: 0; }
+.cluster-legend-detail dl { display: grid; grid-template-columns: 1fr 1fr; gap: 4px 10px; margin: 8px 0; }
+.cluster-legend-detail dd { margin: 0; font-weight: 600; }
+@media (pointer: coarse) {
+  .cluster-map-legend button { min-height: 44px; }
 }
 .dot {
   height: 7px;
@@ -797,6 +878,11 @@ tbody tr:hover {
 .map-popup a {
   font-size: 11px;
   color: var(--teal);
+}
+.forecast-station-picker .map-popup {
+  min-width: 160px;
+  gap: 7px;
+  padding: 2px;
 }
 .map-layout {
   display: grid;
@@ -893,12 +979,12 @@ tbody tr:hover {
 }
 .calendar-chart-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(min(100%, 420px), 1fr));
-  gap: 20px;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 310px), 1fr));
+  gap: 12px;
 }
 .calendar-chart {
   min-width: 0;
-  padding: 16px;
+  padding: 10px;
   border: 1px solid #e1e9e3;
   border-radius: 12px;
 }
@@ -906,6 +992,38 @@ tbody tr:hover {
   margin: 0 0 12px;
   font-size: 14px;
 }
+.calendar-chart-preview {
+  display: block;
+  width: 100%;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: var(--ink);
+  cursor: zoom-in;
+}
+.calendar-chart-preview:hover { background: #f3f8f5; }
+.calendar-chart-preview span { font-size: 12px; }
+.chart > .calendar-chart-preview {
+  max-width: 680px;
+  margin-inline: auto;
+}
+.calendar-chart-dialog {
+  width: min(960px, calc(100% - 24px));
+  max-height: calc(100% - 32px);
+  padding: 16px;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  color: var(--ink);
+}
+.calendar-chart-dialog::backdrop { background: rgb(22 40 35 / 55%); }
+.calendar-chart-dialog header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+}
+.calendar-chart-dialog h3 { margin: 0; }
+.calendar-chart-dialog svg { cursor: crosshair; }
 .calendar-svg {
   width: 100%;
   height: auto;
@@ -1052,40 +1170,13 @@ tbody tr:hover {
 .cluster-explorer {
   padding: 0 25px 24px;
 }
-.cluster-explorer > p {
-  line-height: 1.7;
-}
-.cluster-cards {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(min(100%, 280px), 1fr));
-  gap: 16px;
-  margin-top: 24px;
-}
-.cluster-card {
-  border: 1px solid var(--line);
-  border-top: 4px solid;
-  border-radius: 12px;
-  padding: 18px;
-}
-.cluster-card h3 {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-}
-.cluster-card p {
+.cluster-map-instruction {
+  margin: 0 0 12px;
   font-size: 12px;
-  line-height: 1.7;
+  color: var(--muted);
 }
-.cluster-card dl {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) auto;
-  gap: 10px;
-  font-size: 12px;
-}
-.cluster-card dd {
-  margin: 0;
-  font-weight: 600;
-}
+.map-popup-group { display: grid; gap: 4px; }
+.map-popup-group strong { display: flex; align-items: center; gap: 7px; }
 .group-tag {
   display: inline-block;
   padding: 6px 12px;
@@ -1104,8 +1195,8 @@ tbody tr:hover {
 }
 .prediction-grid {
   display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 20px;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 16px;
   margin-bottom: 30px;
 }
 .prediction-card {
@@ -1113,7 +1204,7 @@ tbody tr:hover {
   background: #fff;
   border: 1px solid var(--line);
   border-radius: 12px;
-  padding: 23px;
+  padding: clamp(14px, 1.5vw, 23px);
   display: flex;
   flex-direction: column;
 }
@@ -1282,26 +1373,6 @@ tbody tr:hover {
   padding: 6px 12px;
   font-size: 10px;
 }
-footer {
-  border-top: 1px solid var(--line);
-  background: #fff;
-  padding: 24px max(38px, calc((100vw - 1244px) / 2));
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 20px;
-  font-size: 9px;
-  color: #7d8a7d;
-}
-footer > span {
-  display: flex;
-  align-items: center;
-  gap: 9px;
-}
-.footer-divider {
-  color: #c7d1c1;
-  margin: 0 4px;
-}
 .skip-link {
   position: absolute;
   top: -100px;
@@ -1340,11 +1411,20 @@ footer > span {
   font-weight: 400;
 }
 .forecast-risk-summary {
-  margin: 4px 24px 18px;
+  margin: 0 24px 8px;
+  padding: 9px 12px;
+  border-radius: 8px;
+  background: #f1f7f3;
   color: var(--muted);
   font-size: 11px;
   line-height: 1.9;
 }
+.day-ahead-panel > .forecast-chart-controls {
+  padding-top: 14px;
+  border-top: 1px solid var(--line);
+  margin-bottom: 8px;
+}
+.prediction-next > h2 { margin: 0 0 12px; font-size: 20px; }
 .forecast-risk-summary strong {
   color: var(--ink);
 }
@@ -1358,8 +1438,6 @@ footer > span {
   padding: 10px 24px 24px;
 }
 .hourly-chart-scroll {
-  overflow-x: auto;
-  max-width: 100%;
   border: 1px solid var(--line);
   border-radius: 12px;
   background: #fff;
@@ -1379,6 +1457,10 @@ footer > span {
   font-size: 9px;
   fill: #687d7d;
 }
+.hourly-forecast-svg { cursor: crosshair; }
+.hourly-chart-cursor line { stroke: #49655e; stroke-dasharray: 4 3; }
+.hourly-chart-cursor rect { fill: #183d3a; }
+.hourly-chart-cursor text { fill: white; }
 .hourly-forecast-column {
   cursor: pointer;
   outline: none;
@@ -1440,7 +1522,7 @@ footer > span {
     font-size: 40px;
   }
   .compact-map .leaflet-container {
-    height: 350px;
+    height: 280px;
   }
   .story-card {
     padding: 35px;
@@ -1510,13 +1592,25 @@ footer > span {
     font-size: 8px;
   }
   nav {
-    padding: 0 20px;
-    gap: 24px;
+    display: grid;
+    grid-template-columns: repeat(5, minmax(0, 1fr));
+    padding: 0 8px;
+    gap: 2px;
+    overflow: visible;
   }
   nav a {
+    min-width: 0;
+    min-height: 62px;
+    flex-direction: column;
+    justify-content: center;
+    gap: 4px;
     font-size: 10px;
-    padding: 16px 0;
+    line-height: 1.3;
+    text-align: center;
+    white-space: normal;
+    padding: 6px 2px;
   }
+  nav a svg { flex-shrink: 0; }
   main {
     padding: 27px 18px 35px;
   }
@@ -1597,10 +1691,10 @@ footer > span {
     padding: 18px;
   }
   .panel-head h2 {
-    font-size: 14px;
+    font-size: 16px;
   }
   .panel-head p {
-    font-size: 9px;
+    font-size: 11px;
   }
   .panel-head select {
     font-size: 9px;
@@ -1628,14 +1722,14 @@ footer > span {
     padding: 12px 18px;
   }
   .compact-map .leaflet-container {
-    height: 320px;
+    height: 240px;
   }
   .map-layout {
     display: flex;
     flex-direction: column-reverse;
   }
   .leaflet-container {
-    height: 380px;
+    height: 310px;
   }
   .station-list {
     max-height: 320px;
@@ -1655,7 +1749,12 @@ footer > span {
   .toolbar select {
     width: 100%;
     min-width: 0;
-    font-size: 10px;
+    font-size: 12px;
+  }
+  .toolbar input,
+  .search-box input {
+    max-width: 100%;
+    font-size: 16px;
   }
   .toolbar > a {
     font-size: 10px;
@@ -1698,14 +1797,23 @@ footer > span {
     font-size: 9px;
   }
   .chart {
-    padding: 5px 5px 0;
-    overflow-x: auto;
+    padding: 5px 8px 0;
   }
-  .chart svg {
-    min-width: 520px;
+  .station-detail .chart .chart-zoom-scroll svg {
+    min-width: 420px;
   }
-  .chart-note {
-    min-width: 400px;
+  .chart svg text,
+  .calendar-svg text {
+    font-size: 15px;
+  }
+  .day-ahead-panel > .forecast-chart-controls,
+  .forecast-risk-summary {
+    margin-inline: 14px;
+  }
+  .hourly-forecast-chart,
+  .day-ahead-issued-evaluation,
+  .cluster-explorer {
+    padding-inline: 14px;
   }
   .prediction-grid {
     grid-template-columns: 1fr;
@@ -1739,13 +1847,6 @@ footer > span {
   .empty p {
     font-size: 10px;
   }
-  footer {
-    padding: 22px 18px;
-    flex-direction: column;
-    align-items: flex-start;
-    font-size: 8px;
-    gap: 12px;
-  }
   .pagination {
     padding: 14px 18px;
     gap: 7px;
@@ -1765,11 +1866,59 @@ footer > span {
   }
 }
 
-.chart-zoom-controls { display: flex; gap: .5rem; align-items: center; margin: .5rem 0; }
+.chart-zoom-controls { display: flex; flex-wrap: wrap; gap: .5rem; align-items: center; margin: .5rem 0; }
 .chart-zoom-controls button { min-width: 2rem; padding: .3rem .6rem; }
 .chart-zoom-scroll { overflow: auto; max-width: 100%; }
+.chart-zoom-scroll.is-dragging, .chart-zoom-scroll.is-dragging svg {
+  cursor: grabbing;
+  user-select: none;
+}
 .chart-zoom-scroll > div > svg { width: 100%; height: auto; }
-.dynamic-chart { width: 100%; height: auto; min-width: 600px; }
+.dynamic-eda-panels {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 350px), 1fr));
+  gap: 12px;
+}
+.dynamic-eda-panels > section {
+  min-width: 0;
+  padding: 10px;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+}
+.dynamic-eda-panels h3 { margin: 0; font-size: 14px; }
+.correlation-view { min-width: 0; }
+.correlation-view .chart-zoom-controls { justify-content: center; }
+.dynamic-chart { display: block; width: 100%; height: auto; }
+.dynamic-eda-panels .dynamic-chart text { font-size: 16px; }
 .dynamic-chart text { fill: #405c57; font-size: 11px; }
 
 .chart .chart-zoom-scroll svg { max-height: none; }
+.station-detail .page-title { padding-block: 14px; margin-bottom: 14px; }
+.station-detail .page-title h1 { font-size: clamp(26px, 3vw, 38px); }
+.station-detail .station-heading { margin: 14px 0 12px; }
+.station-detail .station-heading h2 { font-size: 21px; margin-bottom: 4px; }
+.station-detail .stats-grid { margin-bottom: 12px; gap: 8px; }
+.station-detail .stat { padding: 10px 14px; }
+.station-detail .stat > strong { font-size: 22px; }
+.station-detail .panel { margin-bottom: 12px; }
+.station-detail .panel-head { padding: 12px 14px; }
+.station-detail .weather-grid { padding: 4px 14px 12px; }
+.station-detail .weather-meta { padding: 8px 14px; }
+.station-detail .chart { max-width: 800px; margin-inline: auto; }
+.station-chart-reading {
+  min-height: 1.6em;
+  margin: 6px 0;
+  font-size: 12px;
+  text-align: center;
+  color: var(--ink);
+}
+.station-chart-cursor line { stroke: #49655e; stroke-dasharray: 4 3; }
+.station-chart-cursor circle { fill: #147d70; stroke: white; stroke-width: 2; }
+
+@media (pointer: coarse) {
+  .chart-zoom-controls button,
+  .calendar-chart-dialog header button {
+    min-width: 44px;
+    min-height: 44px;
+  }
+}

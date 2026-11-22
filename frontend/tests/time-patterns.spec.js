@@ -13,7 +13,10 @@ test("time-series requirements and next-day forecasts use the live snapshot", as
     name: "Biểu đồ EDA",
     exact: true,
   });
-  await expect(selector.locator("option")).toHaveCount(12);
+  const kind = page.getByLabel("Loại biểu đồ", { exact: true });
+  const period = page.getByLabel("Kỳ thời gian", { exact: true });
+  await expect(kind.locator("option")).toHaveCount(3);
+  await expect(period.locator("option")).toHaveCount(3);
   await expect(selector.locator('option[value="boxplots.png"]')).toHaveCount(0);
   await expect(selector.locator('option[value="scaling.png"]')).toHaveCount(0);
   for (const file of [
@@ -30,17 +33,16 @@ test("time-series requirements and next-day forecasts use the live snapshot", as
     "weekly_seasonality.png",
   ]) {
     expect(item.figures.some((f) => f.filename === file)).toBeTruthy();
-    await selector.selectOption(file);
-    if (/^(line|scatter|histogram)_/.test(file)) {
+    const series = /^(line|scatter|histogram)_(day|week|month)\.png$/.exec(file);
+    if (series) {
+      await selector.selectOption("series");
+      await kind.selectOption(series[1]);
+      await period.selectOption(series[2]);
       await expect(page.locator(".calendar-svg").first()).toBeVisible();
-    } else
-      await expect
-        .poll(() =>
-          page
-            .locator(".eda-image")
-            .evaluate((img) => img.complete && img.naturalWidth > 0),
-        )
-        .toBeTruthy();
+    } else {
+      await selector.selectOption(file);
+      await expect(page.locator(".dynamic-eda-panels").first()).toBeVisible();
+    }
   }
   await page.goto("/predictions");
   await expect(

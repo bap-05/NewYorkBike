@@ -32,7 +32,7 @@ NewYorkBike dùng dữ liệu số được thu thập theo thời gian. Phạm 
 | **5. Dự đoán ngày mai** | Có dự báo số xe có thể thuê trung bình của từng giờ ngày mai theo từng trạm. Kết quả được công bố vào database và đọc qua API. | **Dự báo → Dự báo và phân loại ngày mai** |
 | **6. Phân loại ngày mai** | Có ba mức **Ít xe / Trung bình / Nhiều xe** dựa trên tỷ lệ số xe dự báo so với sức chứa. Từ 20% trở xuống là ít xe, từ 80% trở lên là nhiều xe, khoảng giữa là trung bình. Các giờ thiếu dữ liệu được hiển thị riêng. | **Dự báo → Dự báo và phân loại ngày mai** |
 
-Các biểu đồ theo kỳ đọc dữ liệu qua `GET /api/eda/series`. Xu hướng, mùa vụ và tương quan lấy từ báo cáo EDA qua API. Dự báo ngày mai đọc bản đã công bố qua `GET /api/eda/day-ahead`.
+Các biểu đồ theo kỳ đọc dữ liệu qua `GET /api/eda/series`. Xu hướng, mùa vụ, phân rã STL và tương quan được vẽ trong trình duyệt từ JSON của `GET /api/eda/reports/{report_id}/chart-data`, có thể phóng to và xem giá trị trên biểu đồ. API đọc các bảng số liệu của báo cáo đã tạo trên máy chủ. Các file PNG vẫn phục vụ báo cáo ngoại tuyến. Dự báo ngày mai đọc bản đã công bố qua `GET /api/eda/day-ahead`.
 
 ## Hệ thống chạy như thế nào?
 

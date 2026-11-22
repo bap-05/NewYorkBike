@@ -67,7 +67,7 @@ function StationContent({ stations }) {
     revision,
   );
   return (
-    <>
+    <div className="station-detail">
       <PageTitle
         eyebrow="MỖI TRẠM, MỘT NHỊP RIÊNG"
         title="Chi tiết trạm xe"
@@ -195,7 +195,7 @@ function StationContent({ stations }) {
       </Feedback>
       <Panel
         title="Lịch sử số xe có thể thuê"
-        subtitle="Hiển thị dữ liệu thực tế; di chuột vào điểm để xem thời gian và số xe."
+        subtitle="Số xe thực tế đã ghi nhận theo giờ New York."
         action={
           <select
             aria-label="Khoảng lịch sử"
@@ -211,7 +211,7 @@ function StationContent({ stations }) {
         <Feedback resource={history} retry={refresh}>
           {(page) => (
             <>
-              <LineChart points={observationPoints(page.items)} />
+              <LineChart key={`${id}:${hours}`} points={observationPoints(page.items)} inspect />
               <details className="data-details">
                 <summary>Xem {number(page.items.length)} mẫu dữ liệu</summary>
                 <Table
@@ -262,7 +262,7 @@ function StationContent({ stations }) {
           )}
         </Feedback>
       </Panel>
-    </>
+    </div>
   );
 }
 function booleanLabel(value) {

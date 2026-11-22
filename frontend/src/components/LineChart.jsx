@@ -1,4 +1,6 @@
+import { useState } from "react";
 import ChartZoom from "./ChartZoom.jsx";
+import { ExpandableChart } from "./ChartDialog.jsx";
 import { number, splitSegments, time } from "../lib/data.js";
 import { Empty } from "./UI.jsx";
 
@@ -7,7 +9,11 @@ export default function LineChart({
   gapMinutes = 45,
   label = "Số xe",
   ceiling,
+  inspect = false,
+  expandable = false,
+  unit = " xe",
 }) {
+  const [cursor, setCursor] = useState(null);
   const segments = splitSegments(points, gapMinutes * 60000);
   const valid = segments.flat();
   const hasEstimates = valid.some((p) => p.estimated);
@@ -18,10 +24,29 @@ export default function LineChart({
   const maxY = Math.max(1, ceiling || 0, ...valid.map((p) => p.value));
   const x = (at) => 54 + ((Date.parse(at) - minT) / (maxT - minT || 1)) * 746;
   const y = (value) => 224 - (value / maxY) * 190;
-  return (
-    <div className="chart">
-      <ChartZoom><svg
+  const activeSegment = cursor === null ? null : segments.find(
+    (segment) => cursor >= x(segment[0].at) - 4 && cursor <= x(segment.at(-1).at) + 4,
+  );
+  const active = activeSegment?.reduce((nearest, point) =>
+    Math.abs(x(point.at) - cursor) < Math.abs(x(nearest.at) - cursor) ? point : nearest,
+  );
+  const cursorX = active ? x(active.at) : cursor;
+
+  function inspectPoint(event) {
+    const transform = event.currentTarget.getScreenCTM();
+    if (!transform) return;
+    const point = new DOMPoint(event.clientX, event.clientY).matrixTransform(transform.inverse());
+    const inside = point.x >= 52 && point.x <= 802 && point.y >= 28 && point.y <= 226;
+    setCursor(inside ? Math.min(800, Math.max(54, point.x)) : null);
+  }
+  const renderChart = (interactive) => (
+      <svg
         viewBox="0 0 830 275"
+        onPointerMove={interactive ? inspectPoint : undefined}
+        onPointerDown={interactive ? inspectPoint : undefined}
+        onPointerLeave={interactive ? (event) => {
+          if (event.pointerType !== "touch") setCursor(null);
+        } : undefined}
         role="img"
         aria-label={`${label}. ${hasEstimates ? "Gồm mẫu thật và dữ liệu ước lượng bù thiếu; xem loại mẫu tại từng điểm." : "Chỉ hiển thị các mẫu thật; khoảng mất dữ liệu được ngắt."}`}
       >
@@ -80,9 +105,38 @@ export default function LineChart({
             {time(new Date(t).toISOString())}
           </text>
         ))}
-      </svg></ChartZoom>
+        {interactive && (
+          <rect x="54" y="30" width="746" height="194" fill="transparent" />
+        )}
+        {interactive && cursorX !== null && (
+          <g className="station-chart-cursor" pointerEvents="none">
+            <line x1={cursorX} x2={cursorX} y1="30" y2="224" />
+            {active && <circle cx={cursorX} cy={y(active.value)} r="6" />}
+          </g>
+        )}
+      </svg>
+  );
+  const reading = inspect && (
+        <p className="station-chart-reading">
+          {active
+            ? <><strong>{number(active.value, 2)}{unit}</strong> · {time(active.at)}{active.estimated && " · Có dữ liệu ước lượng"}</>
+            : cursor !== null
+              ? "Không có mẫu tại khoảng thời gian này."
+              : "Rê chuột hoặc chạm vào biểu đồ để xem số liệu."}
+        </p>
+  );
+  return (
+    <div className="chart">
+      {expandable ? (
+        <ExpandableChart title={label} renderChart={renderChart} reading={reading} onClose={() => setCursor(null)} />
+      ) : (
+        <>
+          <ChartZoom>{renderChart(inspect)}</ChartZoom>
+          {reading}
+        </>
+      )}
       <p className="chart-note">
-        Giờ New York · Di chuột vào điểm để xem mẫu ·{" "}
+        Giờ New York · {!inspect && "Di chuột vào điểm để xem mẫu · "}
         {hasEstimates
           ? "Gồm mẫu thật và ước lượng bù thiếu; loại mẫu được ghi tại từng điểm."
           : "Khoảng thiếu dữ liệu được ngắt."}

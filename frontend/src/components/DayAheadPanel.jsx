@@ -1,4 +1,5 @@
-import { useEffect, useState } from "react";
+import { useState } from "react";
+import { Search } from "lucide-react";
 import { useApp } from "../App.jsx";
 import { get } from "../lib/api.js";
 import { number } from "../lib/data.js";
@@ -36,15 +37,10 @@ function tomorrowInNewYork() {
 
 export default function DayAheadPanel({ stations }) {
   const { revision, refresh } = useApp();
-  const [tick, setTick] = useState(0);
-  useEffect(() => {
-    const timer = setInterval(() => setTick((value) => value + 1), 60000);
-    return () => clearInterval(timer);
-  }, []);
   const report = useResource(
     (signal) => get("/eda/day-ahead", signal, 60000),
     "day-ahead",
-    `${revision}:${tick}`,
+    revision,
   );
   const [stationId, setStationId] = useState("");
   const [query, setQuery] = useState("");
@@ -67,16 +63,15 @@ export default function DayAheadPanel({ stations }) {
       title="Dự báo và phân loại ngày mai"
     >
       <div className="forecast-station-picker">
-        <div>
-          <label className="search-box">
+        <div className="forecast-station-sidebar">
+          <label className="forecast-search-label" htmlFor="forecast-station-search">
             Tìm trạm dự báo ngày mai
-            <input
-              type="search"
-              value={query}
-              onChange={(event) => setQuery(event.target.value)}
-              placeholder="Nhập tên trạm"
-            />
           </label>
+          <div className="search-box">
+            <Search size={16} aria-hidden="true" />
+            <input id="forecast-station-search" type="search" value={query}
+              onChange={(event) => setQuery(event.target.value)} placeholder="Nhập tên trạm" />
+          </div>
           {matches.length ? (
             <ul className="forecast-station-results" aria-label="Các trạm dự báo">
               {matches.map((row) => (
@@ -92,8 +87,12 @@ export default function DayAheadPanel({ stations }) {
               ))}
             </ul>
           ) : (
-            <p role="status">Không tìm thấy trạm phù hợp.</p>
+            <p className="forecast-search-empty" role="status">Không tìm thấy trạm phù hợp.</p>
           )}
+          <p className="forecast-current-station" role="status">
+            <span>Trạm đang xem</span>
+            <strong>{station.name}</strong>
+          </p>
         </div>
         <StationMap
           stations={stations}
@@ -103,7 +102,6 @@ export default function DayAheadPanel({ stations }) {
           focusSelected={Boolean(stationId)}
         />
       </div>
-      <p role="status">Trạm đang xem: <strong>{station.name}</strong></p>
       <Feedback resource={report} retry={refresh}>
         {(data) => {
           const selected = data.item?.day_ahead?.find(
@@ -133,7 +131,7 @@ export default function DayAheadPanel({ stations }) {
           const visible = onlyLow ? low : hours;
           return (
             <>
-              <div className="toolbar">
+              <div className="toolbar forecast-chart-controls">
                 <label>
                   Dạng biểu đồ dự báo
                   <select

@@ -1,5 +1,5 @@
 import { createContext, useContext, useEffect, useState } from "react";
-import { Link, NavLink, Route, Routes } from "react-router-dom";
+import { Link, NavLink, Route, Routes, useLocation } from "react-router-dom";
 import {
   Activity,
   ArrowRight,
@@ -29,6 +29,7 @@ import {
   Time,
 } from "./components/UI.jsx";
 import StationMap from "./components/StationMap.jsx";
+import ErrorBoundary from "./components/ErrorBoundary.jsx";
 import ClusterExplorer from "./components/ClusterExplorer.jsx";
 import StationPage from "./pages/StationPage.jsx";
 import AnalysisPage from "./pages/AnalysisPage.jsx";
@@ -39,6 +40,7 @@ const Context = createContext(null);
 export const useApp = () => useContext(Context);
 
 export default function App() {
+  const { pathname } = useLocation();
   const [revision, setRevision] = useState(0);
   const [now, setNow] = useState(new Date().toISOString());
   useEffect(() => {
@@ -106,6 +108,15 @@ export default function App() {
           </nav>
         </div>
       <main id="main">
+        <ErrorBoundary key={pathname} fallback={(retry) => (
+          <div className="notice error" role="alert">
+            <div>
+              <strong>Không thể hiển thị nội dung trang</strong>
+              <p>Bạn có thể thử lại hoặc chuyển sang trang khác.</p>
+              <button className="text-button" onClick={retry}>Thử lại trang</button>
+            </div>
+          </div>
+        )}>
         <Routes>
           <Route path="/" element={<OverviewPage />} />
           <Route path="/map" element={<MapPage />} />
@@ -125,18 +136,8 @@ export default function App() {
             }
           />
         </Routes>
+        </ErrorBoundary>
       </main>
-      <footer>
-        <span>
-          <Bike size={17} /> NewYorkBike{" "}
-          <span className="footer-divider">/</span> Dữ liệu thật, góc nhìn rõ
-          hơn.
-        </span>
-        <span>
-          Citi Bike GBFS · Open-Meteo <span className="footer-divider">/</span>{" "}
-          Giờ New York
-        </span>
-      </footer>
     </Context.Provider>
   );
 }

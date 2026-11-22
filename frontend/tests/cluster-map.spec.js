@@ -17,13 +17,11 @@ test("published clusters have matching map colors, membership and real feature s
   const labels = [...new Set(items.map((m) => m.cluster_label))];
   await page.goto("/map");
   await page.getByLabel("Chế độ bản đồ").selectOption("clusters");
-  await expect(page.locator(".cluster-card")).toHaveCount(labels.length);
   for (const label of labels) {
     const count = items.filter((m) => m.cluster_label === label).length;
     await expect(
-      page
-        .locator(".cluster-card h3")
-        .filter({ hasText: `Nhóm ${label + 1} · ${count} trạm` }),
+      page.locator(".cluster-explorer .map-legend")
+        .getByText(`Nhóm ${label + 1} · ${count} trạm`, { exact: true }),
     ).toHaveCount(1);
     await expect(
       page.locator(
@@ -31,13 +29,6 @@ test("published clusters have matching map colors, membership and real feature s
       ),
     ).toHaveCount(count);
   }
-  await expect(
-    page
-      .locator(".cluster-card")
-      .first()
-      .getByText("Mức xe thường có", { exact: true }),
-  ).toBeVisible();
-  await expect(page.locator(".cluster-cards")).not.toContainText("%");
   await page.screenshot({
     path: "test-results/cluster-map.png",
     fullPage: true,
@@ -45,5 +36,8 @@ test("published clusters have matching map colors, membership and real feature s
   await page.getByLabel("Chế độ bản đồ").selectOption("availability");
   await expect(page.getByLabel("Tìm trạm theo tên")).toBeVisible();
   await page.goto("/analysis");
-  await expect(page.locator(".cluster-card")).toHaveCount(labels.length);
+  const map = page.locator(".cluster-explorer");
+  const marker = map.locator(`path.leaflet-interactive[fill="${clusterColor(labels[0])}"]`).first();
+  await marker.click();
+  await expect(map.locator(".map-popup-group")).toContainText(`Nhóm ${labels[0] + 1}`);
 });

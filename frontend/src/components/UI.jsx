@@ -23,7 +23,7 @@ export function Empty({ title = "Chưa có dữ liệu", children }) {
   );
 }
 export function Feedback({ resource, retry, children }) {
-  if (resource.error)
+  if (resource.error && !resource.data)
     return (
       <div className="notice error" role="alert">
         <AlertCircle size={20} />
@@ -44,6 +44,12 @@ export function Feedback({ resource, retry, children }) {
     );
   return (
     <>
+      {resource.error && (
+        <div className="notice" role="status">
+          <span>Chưa cập nhật được. Đang hiển thị dữ liệu tải thành công gần nhất.</span>
+          <button className="text-button" onClick={retry}>Thử lại</button>
+        </div>
+      )}
       {resource.loading && (
         <p className="subtle" role="status">
           Đang cập nhật…
@@ -93,7 +99,7 @@ export function Stat({ icon: Icon, label, value, detail, accent }) {
 }
 export function Table({ headers, children }) {
   return (
-    <div className="table-wrap">
+    <div className="table-wrap" role="region" aria-label="Bảng dữ liệu có thể cuộn ngang" tabIndex={0}>
       <table>
         <thead>
           <tr>

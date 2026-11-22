@@ -1,6 +1,5 @@
 import { test, expect } from "@playwright/test";
 import { mkdir } from "node:fs/promises";
-import { requiredCharts } from "../src/lib/requiredCharts.js";
 
 test("EDA automatically loads a newly completed report after one minute", async ({ page, request }) => {
   const response = await request.get("/api/eda");
@@ -43,28 +42,31 @@ test("EDA charts and median/mode render from the real completed report", async (
     name: "Biểu đồ EDA",
     exact: true,
   });
-  await expect(selector.locator("option")).toHaveCount(
-    requiredCharts(report.item.figures).length,
-  );
+  const kind = page.getByLabel("Loại biểu đồ", { exact: true });
+  const period = page.getByLabel("Kỳ thời gian", { exact: true });
+  await expect(kind.locator("option")).toHaveCount(3);
   for (const name of [
     "line_day.png",
     "correlation_all.png",
     "scatter_week.png",
     "histogram_month.png",
   ]) {
-    await selector.selectOption(name);
-    if (/^(line|scatter|histogram)_/.test(name)) {
+    const series = /^(line|scatter|histogram)_(day|week|month)\.png$/.exec(name);
+    if (series) {
+      await selector.selectOption("series");
+      await kind.selectOption(series[1]);
+      await period.selectOption(series[2]);
       await expect(page.locator(".calendar-svg").first()).toBeVisible();
-    } else
-      await expect
-        .poll(() =>
-          page
-            .locator(".eda-image")
-            .evaluate((image) => image.complete && image.naturalWidth > 0),
-        )
-        .toBeTruthy();
+    } else {
+      await selector.selectOption(name);
+      await expect(
+        page.getByRole("img", { name: "Ma trận tương quan Pearson" }),
+      ).toBeVisible();
+    }
   }
-  await selector.selectOption("line_day.png");
+  await selector.selectOption("series");
+  await kind.selectOption("line");
+  await period.selectOption("day");
   await expect(page.locator(".calendar-svg").first()).toBeVisible();
   await expect(page.locator(".eda-content table")).toHaveCount(0);
   await mkdir("../artifacts/frontend", { recursive: true });

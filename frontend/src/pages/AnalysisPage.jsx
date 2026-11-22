@@ -120,7 +120,11 @@ function AnalysisContent({ stations }) {
             ) : (
               <>
                 <LineChart
+                  key={`${stationId}:${aggregation}:${metric}`}
                   label={metrics[metric]}
+                  inspect
+                  expandable
+                  unit={metric === "available_bikes_mean" ? " xe" : ""}
                   gapMinutes={aggregation === "day" ? 25 * 60 : 90}
                   points={page.items
                     .slice()
@@ -203,7 +207,7 @@ function ClusterMembers({ run, stations, previous }) {
       <Feedback resource={members} retry={refresh}>
         {(page) => (
           <>
-            <ClusterVisual run={run} members={page.items} stations={stations} />
+            <ClusterVisual members={page.items} stations={stations} />
 
           </>
         )}

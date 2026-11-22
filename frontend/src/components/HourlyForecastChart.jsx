@@ -23,6 +23,7 @@ export default function HourlyForecastChart({
   stationName,
 }) {
   const [selectedKey, setSelectedKey] = useState(null);
+  const [cursorKey, setCursorKey] = useState(null);
   if (!hours.length) return null;
   const selected =
     hours.find((hour) => hour.target_start_utc === selectedKey) || hours[0];
@@ -54,6 +55,24 @@ export default function HourlyForecastChart({
   const height = 200;
   const y = (value) => base - (value / ceiling) * height;
   const pointX = (index) => 60 + index * step + (step - 8) / 2;
+  const cursorIndex = hours.findIndex((hour) => hour.target_start_utc === cursorKey);
+  const cursorHour = hours[cursorIndex];
+  const cursorX = pointX(cursorIndex);
+  const tooltipX = Math.min(width - 226, Math.max(52, cursorX - 108));
+
+  function inspectHour(event) {
+    const matrix = event.currentTarget.getScreenCTM();
+    if (!matrix) return;
+    const point = new DOMPoint(event.clientX, event.clientY).matrixTransform(matrix.inverse());
+    if (point.x < 56 || point.x > width - 20 || point.y < 35 || point.y > 294) {
+      setCursorKey(null);
+      return;
+    }
+    const index = Math.min(hours.length - 1, Math.max(0, Math.round((point.x - pointX(0)) / step)));
+    const key = hours[index].target_start_utc;
+    setCursorKey(key);
+    setSelectedKey(key);
+  }
   return (
     <div className="hourly-forecast-chart">
       <h3>Xe dự báo trung bình theo giờ</h3>
@@ -74,17 +93,20 @@ export default function HourlyForecastChart({
       </div>
       <ChartZoom><div
         className="hourly-chart-scroll"
-        tabIndex={0}
-        role="region"
-        aria-label="Cuộn biểu đồ dự báo từng giờ"
+        style={{ minWidth: Math.round(width * 0.8) }}
       >
         <svg
           className="hourly-forecast-svg"
           data-chart-type={chartType}
           viewBox={`0 0 ${width} 330`}
-          style={{ width: "100%", minWidth: width }}
+          style={{ width: "100%" }}
           role="group"
           aria-label="Biểu đồ số xe trung bình dự báo theo giờ New York"
+          onPointerMove={inspectHour}
+          onPointerDown={inspectHour}
+          onPointerLeave={(event) => {
+            if (event.pointerType !== "touch") setCursorKey(null);
+          }}
         >
           <text x="12" y="24">
             Số xe trung bình
@@ -154,7 +176,6 @@ export default function HourlyForecastChart({
                 }
                 onClick={choose}
                 onFocus={choose}
-                onMouseEnter={choose}
                 onKeyDown={(event) => {
                   if (event.key === "Enter" || event.key === " ") {
                     event.preventDefault();
@@ -243,6 +264,18 @@ export default function HourlyForecastChart({
               </g>
             );
           })}
+          {cursorHour && (
+            <g className="hourly-chart-cursor" pointerEvents="none" aria-hidden="true">
+              <line x1={cursorX} x2={cursorX} y1="35" y2="250" />
+              <rect x={tooltipX} y="38" width="216" height="45" rx="6" />
+              <text x={tooltipX + 10} y="55">{cursorHour.hour_label}</text>
+              <text x={tooltipX + 10} y="72">
+                {usable(cursorHour)
+                  ? `${number(cursorHour.predicted_mean_bikes, 2)} xe · ${classes[cursorHour.availability_class] || "Chưa phân loại"}`
+                  : "Chưa đủ dữ liệu"}
+              </text>
+            </g>
+          )}
           <text x={width / 2} y="322" textAnchor="middle">
             Giờ New York (độ lệch UTC)
           </text>

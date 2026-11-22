@@ -25,7 +25,12 @@ export function useResource(loader, key, revision = 0) {
       })
       .catch((error) => {
         if (!controller.signal.aborted)
-          setState({ key, data: null, error: error.message, loading: false });
+          setState((old) => ({
+            key,
+            data: old.key === key ? old.data : null,
+            error: error.message,
+            loading: false,
+          }));
       });
     return () => controller.abort();
   }, [key, revision]);

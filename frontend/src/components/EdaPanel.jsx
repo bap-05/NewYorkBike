@@ -1,5 +1,5 @@
 import DynamicEda from "./DynamicEda.jsx";
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { useApp } from "../App.jsx";
 import { get } from "../lib/api.js";
 import { number } from "../lib/data.js";
@@ -14,33 +14,14 @@ const figures = {
   "correlation_all.png": "Ma trận tương quan giữa các biến",
 };
 
-function figureLabel(figure) {
-  const match = /^(line|scatter|histogram)_(day|week|month)\.png$/.exec(
-    figure.filename,
-  );
-  if (!match) return figures[figure.filename] || figure.title;
-  const kind = {
-    line: "Đường thời gian",
-    scatter: "Phân tán",
-    histogram: "Phân phối",
-  };
-  const period = { day: "ngày", week: "tuần", month: "tháng" };
-  return `${kind[match[1]]} · Chọn ${period[match[2]]} cụ thể`;
-}
-
 export default function EdaPanel({ stations }) {
   const { revision, refresh } = useApp();
-  const [tick, setTick] = useState(0);
-  useEffect(() => {
-    const timer = setInterval(() => setTick((value) => value + 1), 60000);
-    return () => clearInterval(timer);
-  }, []);
   const report = useResource(
     (signal) => get("/eda", signal),
     "eda",
-    `${revision}:${tick}`,
+    revision,
   );
-  const [selectedFigure, setSelectedFigure] = useState("line_day.png");
+  const [selectedFigure, setSelectedFigure] = useState("series");
   const [decompositionStation, setDecompositionStation] = useState("");
   return (
     <Panel title="Khám phá dữ liệu (EDA)">
@@ -65,12 +46,7 @@ export default function EdaPanel({ stations }) {
                   (f) => f.station_id === decompositionStation,
                 ) || decompositions[0]
               : null) ||
-            visibleFigures.find((f) => f.filename === selectedFigure) ||
-            visibleFigures[0];
-          const calendarFigure =
-            /^(line|scatter|histogram)_(day|week|month)\.png$/.exec(
-              figure?.filename || "",
-            );
+            visibleFigures.find((f) => f.filename === selectedFigure);
           return (
             <div className="eda-content">
               <div className="eda-counts">
@@ -96,18 +72,15 @@ export default function EdaPanel({ stations }) {
                   Biểu đồ EDA
                   <select
                     aria-label="Biểu đồ EDA"
-                    value={
-                      isDecomposition && decompositions.length
-                        ? "decomposition"
-                        : figure?.filename || ""
-                    }
+                    value={figure ? selectedFigure : "series"}
                     onChange={(e) => setSelectedFigure(e.target.value)}
                   >
+                    <option value="series">Biểu đồ theo thời gian</option>
                     {visibleFigures
-                      .filter((f) => !f.filename.startsWith("decomposition_"))
+                      .filter((f) => Object.hasOwn(figures, f.filename))
                       .map((f) => (
                         <option key={f.filename} value={f.filename}>
-                          {figureLabel(f)}
+                          {figures[f.filename]}
                         </option>
                       ))}
                     {decompositions.length > 0 && (
@@ -139,17 +112,10 @@ export default function EdaPanel({ stations }) {
                 )}
 
               </div>
-              {calendarFigure ? (
-                <CalendarExplorer
-                  key={calendarFigure[2]}
-                  kind={calendarFigure[1]}
-                  period={calendarFigure[2]}
-                  stations={stations}
-                />
-              ) : figure ? (
+              {figure ? (
                 <DynamicEda key={`${item.report_id}:${figure.filename}`} reportId={item.report_id} figure={figure} stations={stations} revision={revision} refresh={refresh} />
               ) : (
-                <Empty title="Báo cáo chưa có hình được công bố" />
+                <CalendarExplorer stations={stations} />
               )}
             </div>
           );

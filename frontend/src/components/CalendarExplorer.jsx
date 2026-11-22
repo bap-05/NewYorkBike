@@ -1,5 +1,6 @@
 import ChartZoom from "./ChartZoom.jsx";
 import { useState } from "react";
+import ChartDialog from "./ChartDialog.jsx";
 import { useApp } from "../App.jsx";
 import { get, query } from "../lib/api.js";
 import { calendarDefault, chartSegments } from "../lib/calendar.js";
@@ -14,10 +15,13 @@ const types = {
   histogram: "Phân phối",
 };
 
-export default function CalendarExplorer({ period, kind, stations }) {
+export default function CalendarExplorer({ stations }) {
   const { revision, refresh } = useApp();
+  const [kind, setKind] = useState("line");
+  const [period, setPeriod] = useState("day");
   const [anchor, setAnchor] = useState(() => calendarDefault(period));
   const [station, setStation] = useState("ALL");
+  const [expanded, setExpanded] = useState("");
   const key = `${period}:${anchor}:${station}`;
   const result = useResource(
     (signal) =>
@@ -37,6 +41,26 @@ export default function CalendarExplorer({ period, kind, stations }) {
   return (
     <div className="calendar-explorer">
       <div className="toolbar">
+        <label>
+          Loại biểu đồ
+          <select value={kind} onChange={(event) => setKind(event.target.value)}>
+            {Object.entries(types).map(([value, label]) => (
+              <option key={value} value={value}>{label}</option>
+            ))}
+          </select>
+        </label>
+        <label>
+          Kỳ thời gian
+          <select value={period} onChange={(event) => {
+            const next = event.target.value;
+            setPeriod(next);
+            setAnchor(calendarDefault(next));
+          }}>
+            {Object.entries(periods).map(([value, label]) => (
+              <option key={value} value={value}>{label}</option>
+            ))}
+          </select>
+        </label>
         <label>
           {periods[period]} muốn xem
           <input
@@ -95,7 +119,12 @@ export default function CalendarExplorer({ period, kind, stations }) {
                     {data.items.map((s) => (
                       <article className="calendar-chart" key={s.station_id}>
                         <h3>{s.name}</h3>
-                        <SeriesChart station={s} data={data} kind={kind} />
+                        <SeriesChart station={s} data={data} kind={kind} onExpand={() => setExpanded(s.station_id)} />
+                        {expanded === s.station_id && (
+                          <ChartDialog title={s.name} onClose={() => setExpanded("")}>
+                            <SeriesChart station={s} data={data} kind={kind} />
+                          </ChartDialog>
+                        )}
                       </article>
                     ))}
                   </div>
@@ -109,7 +138,8 @@ export default function CalendarExplorer({ period, kind, stations }) {
   );
 }
 
-function SeriesChart({ station, data, kind }) {
+function SeriesChart({ station, data, kind, onExpand }) {
+  const [cursor, setCursor] = useState(null);
   const valid = station.points.filter((p) => Number.isFinite(p.value));
   if (!valid.length)
     return (
@@ -132,13 +162,32 @@ function SeriesChart({ station, data, kind }) {
   const maxCount = Math.max(1, ...counts);
   const axisMax = kind === "histogram" ? maxCount : maxValue;
   const tooltipStride = Math.max(1, Math.ceil(valid.length / 300));
-  return (
-    <>
-      <ChartZoom><svg
+  const segment = cursor === null || kind === "histogram" ? null :
+    segments.find((points) => cursor >= x(points[0].at) - 3 && cursor <= x(points.at(-1).at) + 3);
+  const point = segment?.reduce((best, p) =>
+    Math.abs(x(p.at) - cursor) < Math.abs(x(best.at) - cursor) ? p : best);
+  const bin = cursor !== null && kind === "histogram"
+    ? Math.min(bins - 1, Math.floor((cursor - 60) / 700 * bins))
+    : null;
+  const cursorX = point ? x(point.at) : cursor;
+  function inspect(event) {
+    const matrix = event.currentTarget.getScreenCTM();
+    if (!matrix) return;
+    const position = new DOMPoint(event.clientX, event.clientY).matrixTransform(matrix.inverse());
+    setCursor(position.x >= 58 && position.x <= 762 && position.y >= 35 && position.y <= 224
+      ? Math.min(760, Math.max(60, position.x)) : null);
+  }
+  const svg = (
+      <svg
         className="calendar-svg"
         viewBox="0 0 800 280"
         role="img"
         aria-label={`${types[kind]} ${station.name}, ${data.anchor}`}
+        onPointerMove={onExpand ? undefined : inspect}
+        onPointerDown={onExpand ? undefined : inspect}
+        onPointerLeave={onExpand ? undefined : (event) => {
+          if (event.pointerType !== "touch") setCursor(null);
+        }}
       >
         {[0, 0.25, 0.5, 0.75, 1].map((part) => (
           <g key={part}>
@@ -202,7 +251,7 @@ function SeriesChart({ station, data, kind }) {
               y={y(count, maxCount)}
               width={700 / bins - 1}
               height={222 - y(count, maxCount)}
-              fill="#167c70"
+              fill={i === bin ? "#204b6d" : "#167c70"}
             >
               <title>
                 {number(minValue + i * width, 1)}–
@@ -222,7 +271,32 @@ function SeriesChart({ station, data, kind }) {
               : time(new Date(first + part * (last - first)).toISOString())}
           </text>
         ))}
-      </svg></ChartZoom>
+        {!onExpand && <rect x="60" y="35" width="700" height="189" fill="transparent" />}
+        {cursorX !== null && bin === null && (
+          <g className="station-chart-cursor" pointerEvents="none">
+            <line x1={cursorX} x2={cursorX} y1="35" y2="222" />
+            {point && <circle cx={cursorX} cy={y(point.value, maxValue)} r="6" />}
+          </g>
+        )}
+      </svg>
+  );
+  return (
+    <>
+      {onExpand ? (
+        <button className="calendar-chart-preview" type="button" onClick={onExpand} aria-label={`Mở lớn biểu đồ ${station.name}`}>
+          {svg}
+          <span>Mở lớn</span>
+        </button>
+      ) : (
+        <>
+          <ChartZoom min={60} step={20}>{svg}</ChartZoom>
+          <p className="station-chart-reading">
+            {point ? <><strong>{number(point.value)} xe</strong> · {time(point.at)}</> :
+              bin !== null ? <><strong>{number(counts[bin])} mẫu</strong> · {number(minValue + bin * width, 1)}–{number(minValue + (bin + 1) * width, 1)} xe</> :
+              cursor !== null ? "Không có mẫu trong khoảng thời gian này." : "Rê chuột hoặc chạm vào biểu đồ để xem số liệu."}
+          </p>
+        </>
+      )}
       <p className="panel-footnote">
         {number(valid.length)} mẫu hợp lệ / {number(station.points.length)} mốc
         · Trục dọc: {kind === "histogram" ? "số mẫu" : "số xe có thể thuê"}.

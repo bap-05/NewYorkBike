@@ -52,6 +52,8 @@ function PredictionContent({ stations }) {
         <RefreshButton />
       </PageTitle>
       <DayAheadPanel stations={stations} />
+      <section className="prediction-next" aria-labelledby="prediction-next-heading">
+      <h2 id="prediction-next-heading">Dự báo 30 phút tiếp theo</h2>
       <Feedback resource={forecasts} retry={refresh}>
         {(rows) => {
           return (
@@ -178,6 +180,7 @@ function PredictionContent({ stations }) {
           );
         }}
       </Feedback>
+      </section>
     </>
   );
 }
