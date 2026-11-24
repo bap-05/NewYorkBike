@@ -43,28 +43,31 @@ def load_frame(session, settings, options, start, cutoff, max_rows=100000, *, in
         BikeObservation.station_id.in_(by_id), BikeObservation.sampled_at >= start,
         BikeObservation.sampled_at < cutoff).order_by(BikeObservation.sampled_at, BikeObservation.id).limit(max_rows + 1)
     records = []
-    for result in session.execute(query):
-        bike, weather, weather_status, weather_finished, weather_source = (
-            result if include_weather else (result[0], None, None, None, None))
-        if len(records) >= max_rows:
-            raise ValueError('EDA row limit exceeded; narrow the requested date range')
-        station = by_id[bike.station_id]
-        published = weather is not None and (weather.collection_run_id is None or (
-            weather_status in ('success', 'partial') and weather_finished is not None
-            and weather_finished <= cutoff and weather_source == settings.bike_source))
-        row = {'observation_id': bike.id, 'source': bike.source, 'station_id': bike.station_id,
-            'station_name': station.name, 'capacity': station.capacity, 'quality_status': bike.quality_status,
-            'sampled_at': bike.sampled_at, 'collected_at': bike.collected_at,
-            'source_observed_at': bike.source_observed_at, 'available_bikes': bike.available_bikes,
-            'available_docks': bike.available_docks, 'bike_usable': usable_bike(bike),
-            'weather_usable': usable_weather(weather, bike, station, cutoff, options,
-                settings.weather_max_age_seconds, published),
-            'weather_id': weather.id if weather else None,
-            'weather_time': weather.weather_time if weather else None,
-            'weather_units': json.dumps(weather.units, ensure_ascii=False) if weather else None,
-            'weather_interval_seconds': weather.interval_seconds if weather else None}
-        row.update({column: getattr(weather, column) if weather else None for column in WEATHER})
-        records.append(row)
+    # Stream ORM batches instead of buffering every observation (and joined
+    # weather object) in memory before building the analytical frame.
+    with session.execute(query.execution_options(yield_per=500)) as results:
+        for result in results:
+            bike, weather, weather_status, weather_finished, weather_source = (
+                result if include_weather else (result[0], None, None, None, None))
+            if len(records) >= max_rows:
+                raise ValueError('EDA row limit exceeded; narrow the requested date range')
+            station = by_id[bike.station_id]
+            published = weather is not None and (weather.collection_run_id is None or (
+                weather_status in ('success', 'partial') and weather_finished is not None
+                and weather_finished <= cutoff and weather_source == settings.bike_source))
+            row = {'observation_id': bike.id, 'source': bike.source, 'station_id': bike.station_id,
+                'station_name': station.name, 'capacity': station.capacity, 'quality_status': bike.quality_status,
+                'sampled_at': bike.sampled_at, 'collected_at': bike.collected_at,
+                'source_observed_at': bike.source_observed_at, 'available_bikes': bike.available_bikes,
+                'available_docks': bike.available_docks, 'bike_usable': usable_bike(bike),
+                'weather_usable': usable_weather(weather, bike, station, cutoff, options,
+                    settings.weather_max_age_seconds, published),
+                'weather_id': weather.id if weather else None,
+                'weather_time': weather.weather_time if weather else None,
+                'weather_units': json.dumps(weather.units, ensure_ascii=False) if weather else None,
+                'weather_interval_seconds': weather.interval_seconds if weather else None}
+            row.update({column: getattr(weather, column) if weather else None for column in WEATHER})
+            records.append(row)
     frame = pd.DataFrame(records, columns=BASE_COLUMNS)
     for column in TIME_COLUMNS:
         frame[column] = pd.to_datetime(frame[column], utc=True)

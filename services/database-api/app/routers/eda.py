@@ -38,6 +38,15 @@ def eda_series(ctx: Context, period: Literal['day', 'week', 'month'],
     return read_series(ctx, source, period, anchor, station_id)
 
 
+@router.get('/chart-data')
+def live_chart_data(ctx: Context, kind: Literal['trend', 'seasonality', 'correlation', 'decomposition'],
+        days: Annotated[int, Query(ge=7, le=90)] = 28, source: Source = 'citibike',
+        station_id: Annotated[str|None, Query(min_length=1, max_length=128)] = None):
+    # Keep optional analytics imports out of ordinary API startup.
+    from backend.app.live_eda import read_chart_data
+    return read_chart_data(ctx, source, kind, days, station_id)
+
+
 @router.get('/reports/{report_id}/figures/{filename}', response_class=FileResponse)
 def eda_figure(report_id: ReportId, filename: Filename, request: Request, source: Source = 'citibike'):
     root = report_root(request.app.state.options)

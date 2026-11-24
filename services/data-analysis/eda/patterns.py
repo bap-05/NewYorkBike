@@ -23,8 +23,8 @@ def availability_class(value, capacity):
     return 'low' if ratio <= .2 else 'high' if ratio >= .8 else 'balanced'
 
 
-def calendar_patterns(frame, coverage, stations, cutoff, cadence=None, forecast_estimates=None):
-    """Return quality-gated daily/weekly/monthly means and next-day estimates."""
+def calendar_aggregates(frame, coverage, cutoff):
+    """Calendar means only: reusable by read-only APIs without forecasting."""
     cutoff = pd.Timestamp(cutoff).to_pydatetime().astimezone(UTC)
     today = cutoff.astimezone(ZONE).date()
     values = statistical_values(frame)
@@ -53,6 +53,19 @@ def calendar_patterns(frame, coverage, stations, cutoff, cadence=None, forecast_
                 'eligible_days': count, 'expected_days': required,
                 'complete': count == required,
                 'mean_bikes': float(rows.loc[rows.eligible, 'mean_bikes'].mean()) if count == required else None})
+    return {'daily': daily, 'weekly': pd.DataFrame(weekly), 'monthly': pd.DataFrame(monthly)}
+
+
+def calendar_patterns(frame, coverage, stations, cutoff, cadence=None, forecast_estimates=None):
+    """Return quality-gated daily/weekly/monthly means and next-day estimates."""
+    cutoff = pd.Timestamp(cutoff).to_pydatetime().astimezone(UTC)
+    today = cutoff.astimezone(ZONE).date()
+    tables = calendar_aggregates(frame, coverage, cutoff)
+    daily = tables['daily']
+    values = statistical_values(frame)
+    base = frame.loc[values.index, ['station_id', 'local_date', 'local_hour', 'sampled_at']].copy()
+    base['bikes'] = values.available_bikes
+    base = base.loc[base.sampled_at < cutoff]
     target_date = today + timedelta(days=1)
     target_start = datetime.combine(target_date, time.min, ZONE)
     target_end = datetime.combine(target_date + timedelta(days=1), time.min, ZONE)
@@ -116,7 +129,7 @@ def calendar_patterns(frame, coverage, stations, cutoff, cadence=None, forecast_
             'mae': float(np.mean(np.abs(errors))) if enough_test else None,
             'rmse': float(np.sqrt(np.mean(np.square(errors)))) if enough_test else None,
             'classification_accuracy': correct / len(errors) if enough_test else None})
-    return {'daily': daily, 'weekly': pd.DataFrame(weekly), 'monthly': pd.DataFrame(monthly),
+    return {**tables,
         'day_ahead': {'method': 'matching_hour_previous_seven_covered_days_minimum_five_hours',
             'target': 'next_local_calendar_day_hourly_mean_rentable_bikes',
             'classification_method': 'predicted_availability_ratio_thresholds_20_80_percent',

@@ -46,7 +46,8 @@ def usable_bike(bike):
 
 
 def usable_weather(weather, bike, station, cutoff, options, max_age, weather_published):
-    if weather is None or not weather_published or weather.source != "open-meteo":
+    from shared.weather_policy import RETROSPECTIVE_WEATHER_SOURCES
+    if weather is None or not weather_published or weather.source not in RETROSPECTIVE_WEATHER_SOURCES:
         return False
     values = (weather.temperature, weather.humidity, weather.rain, weather.wind_speed)
     if any(value is None or not math.isfinite(value) for value in values):

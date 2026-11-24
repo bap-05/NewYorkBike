@@ -35,7 +35,8 @@ Citi Bike GBFS + Open-Meteo
             |
          FastAPI ----> React
 
-Database ----> EDA worker ----> artifacts/eda ----> FastAPI
+Database ----> FastAPI EDA ----> Biểu đồ tương tác trên web
+Database ----> EDA CLI -------> artifacts/eda (xuất báo cáo tùy chọn)
 ```
 
 | Thành phần | Công nghệ |
@@ -203,7 +204,9 @@ Dự báo ngày mai không sử dụng trực tiếp mô hình thời tiết c�
 
 ## Báo cáo EDA
 
-Khi `EDA_AUTO_UPDATE=true`, API kiểm tra thay đổi dữ liệu khi khởi động và mỗi 15 phút. Nếu có thay đổi, tiến trình nền tạo báo cáo mới từ 28 ngày gần nhất, tối đa 200.000 mẫu. Giao diện kiểm tra báo cáo hoàn tất mỗi phút; báo cáo cũ vẫn được giữ nếu lần tạo mới thất bại.
+EDA trên web đọc trực tiếp DB: biểu đồ ngày/tuần/tháng dùng `/api/eda/series`; xu hướng, mùa vụ, tương quan và phân rã dùng `/api/eda/chart-data`. Không cần file báo cáo hay thư mục `artifacts/eda`. Giao diện giữ bộ lọc, mở lớn biểu đồ và kiểm tra dữ liệu mới mỗi phút.
+
+Trên Render có thể đặt `EDA_AUTO_UPDATE=false` để không chạy tiến trình xuất báo cáo Matplotlib cùng backend. Biến này chỉ điều khiển bản xuất file tùy chọn, không tắt biểu đồ đọc DB. Backend và frontend phải cùng dùng phiên bản có API `/api/eda/chart-data`.
 
 Để tạo thủ công:
 
@@ -211,7 +214,7 @@ Khi `EDA_AUTO_UPDATE=true`, API kiểm tra thay đổi dữ liệu khi khởi đ
 .venv\Scripts\python.exe -m eda.main --days 28 --max-rows 200000
 ```
 
-Kết quả gồm HTML, JSON, CSV và ảnh biểu đồ trong `artifacts/eda/`. API đọc báo cáo hoàn tất gần nhất tại `API_EDA_REPORT_DIR`. Tự cập nhật chỉ hoạt động khi API đang chạy.
+Lệnh CLI xuất HTML, JSON, CSV và ảnh trong `artifacts/eda/`. Các endpoint `/api/eda` và `/api/eda/reports/...` vẫn phục vụ các bản xuất hoàn tất tại `API_EDA_REPORT_DIR`. Nếu bật `EDA_AUTO_UPDATE=true`, API kiểm tra thay đổi và tạo lại bản xuất mỗi 15 phút khi đang chạy; giao diện không phụ thuộc các file này.
 
 Trong EDA, chọn **Phân rã xu hướng – mùa vụ – phần dư** rồi chọn trạm để xem bốn thành phần của STL theo chu kỳ 24 giờ. Cần ít nhất 7 ngày liên tục, mỗi giờ đạt 80% số mẫu hợp lệ; kết quả số được xuất vào `time_series_decomposition.csv`. Xem [quy tắc phân rã](docs/EDA.md#phân-rã-chuỗi-thời-gian-theo-trạm).
 

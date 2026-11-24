@@ -1,83 +1,50 @@
 import { test, expect } from "@playwright/test";
 import { mkdir } from "node:fs/promises";
+import { calendarDefault } from "../src/lib/calendar.js";
+import { prepareEda, expectNoReportReads } from "./edaHelpers.js";
 
-test("EDA automatically loads a newly completed report after one minute", async ({ page, request }) => {
-  const response = await request.get("/api/eda");
-  const original = await response.json();
-  expect(original.item).toBeTruthy();
-  let calls = 0;
-  let published = false;
-  await page.route(/\/api\/eda(?:\?.*)?$/, async (route) => {
-    calls += 1;
-    const data = structuredClone(original);
-    data.item.raw_rows = published ? 23456 : 12345;
-    await route.fulfill({ json: data });
-  });
-  await page.clock.install();
+test("EDA reads fresh DB data each minute without requiring a file report", async ({ page, request }) => {
+  const { requests } = await prepareEda(page, request);
   await page.goto("/analysis");
-  await expect(page.locator(".eda-content")).toContainText("12.345");
-  const initialCalls = calls;
-  published = true;
+  await page.getByLabel("Biểu đồ EDA", { exact: true }).selectOption("correlation_all.png");
+  await expect(page.getByRole("img", { name: "Ma trận tương quan Pearson" })).toBeVisible();
+  const calls = () => requests.filter((url) => url.includes("/api/eda/chart-data?")).length;
+  const before = calls();
   await page.clock.fastForward(60000);
-  await expect(page.locator(".eda-content")).toContainText("23.456");
-  expect(calls).toBeGreaterThan(initialCalls);
+  await expect.poll(calls).toBeGreaterThan(before);
+  await expect(page.getByRole("img", { name: "Ma trận tương quan Pearson" })).toBeVisible();
+  expectNoReportReads(requests);
 });
 
-test("EDA charts and median/mode render from the real completed report", async ({
-  page,
-  request,
-}) => {
-  const response = await request.get("/api/eda");
-  expect(response.ok()).toBeTruthy();
-  const report = await response.json();
-  expect(report.status).toBe("available");
+test("QUAN calendar controls retain all nine charts, dialog and mobile layout", async ({ page, request }) => {
+  const { now, requests } = await prepareEda(page, request);
   const errors = [];
   page.on("pageerror", (error) => errors.push(error.message));
-  await page.setViewportSize({ width: 1440, height: 1000 });
   await page.goto("/analysis");
-  await expect(
-    page.getByRole("heading", { name: "Khám phá dữ liệu (EDA)" }),
-  ).toBeVisible();
-  const selector = page.getByRole("combobox", {
-    name: "Biểu đồ EDA",
-    exact: true,
-  });
-  const kind = page.getByLabel("Loại biểu đồ", { exact: true });
-  const period = page.getByLabel("Kỳ thời gian", { exact: true });
-  await expect(kind.locator("option")).toHaveCount(3);
-  for (const name of [
-    "line_day.png",
-    "correlation_all.png",
-    "scatter_week.png",
-    "histogram_month.png",
-  ]) {
-    const series = /^(line|scatter|histogram)_(day|week|month)\.png$/.exec(name);
-    if (series) {
-      await selector.selectOption("series");
-      await kind.selectOption(series[1]);
-      await period.selectOption(series[2]);
+  await expect(page.getByRole("heading", { name: "Khám phá dữ liệu (EDA)" })).toBeVisible();
+  const kind = page.getByRole("combobox", { name: "Loại biểu đồ", exact: true });
+  const period = page.getByRole("combobox", { name: "Kỳ thời gian", exact: true });
+  const previousDay = new Date(+now - 86400000);
+  for (const selectedPeriod of ["day", "week", "month"]) {
+    await period.selectOption(selectedPeriod);
+    await page.getByLabel(`${{ day: "Ngày", week: "Tuần", month: "Tháng" }[selectedPeriod]} muốn xem`)
+      .fill(calendarDefault(selectedPeriod, previousDay));
+    for (const selectedKind of ["line", "scatter", "histogram"]) {
+      await kind.selectOption(selectedKind);
       await expect(page.locator(".calendar-svg").first()).toBeVisible();
-    } else {
-      await selector.selectOption(name);
-      await expect(
-        page.getByRole("img", { name: "Ma trận tương quan Pearson" }),
-      ).toBeVisible();
     }
   }
-  await selector.selectOption("series");
-  await kind.selectOption("line");
-  await period.selectOption("day");
-  await expect(page.locator(".calendar-svg").first()).toBeVisible();
-  await expect(page.locator(".eda-content table")).toHaveCount(0);
-  await mkdir("../artifacts/frontend", { recursive: true });
-  await page
-    .locator(".eda-content")
-    .screenshot({ path: "../artifacts/frontend/eda-web.png" });
+  await page.locator(".calendar-chart-preview").first().click();
+  const dialog = page.getByRole("dialog");
+  await expect(dialog).toBeVisible();
+  await dialog.getByRole("button", { name: "Phóng to biểu đồ", exact: true }).click();
+  await expect(dialog.locator(".chart-zoom-controls")).toContainText("120%");
+  await dialog.getByRole("button", { name: "Đóng", exact: true }).click();
+  await expect(dialog).toHaveCount(0);
   await page.setViewportSize({ width: 390, height: 844 });
-  expect(
-    await page.evaluate(
-      () => document.documentElement.scrollWidth <= window.innerWidth,
-    ),
-  ).toBeTruthy();
+  expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBeTruthy();
+  expectNoReportReads(requests);
   expect(errors).toEqual([]);
+  await mkdir("../artifacts/frontend", { recursive: true });
+  await page.screenshot({ path: "../artifacts/frontend/quan-eda-mobile.png", fullPage: true });
 });

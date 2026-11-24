@@ -1,5 +1,5 @@
 import { useMemo, useState } from "react";
-import { get } from "../lib/api.js";
+import { get, query } from "../lib/api.js";
 import { useResource } from "../lib/useResource.js";
 import { Empty, Feedback } from "./UI.jsx";
 import { ExpandableChart } from "./ChartDialog.jsx";
@@ -10,8 +10,36 @@ const labels = { available_bikes: "Số xe", available_docks: "Chỗ trống", t
 const numeric = (value) => value === "" || value == null ? null : Number.isFinite(Number(value)) ? Number(value) : null;
 const yes = (value) => String(value).toLowerCase() === "true";
 
-export default function DynamicEda({ reportId, figure, stations, revision, refresh }) {
-  const data = useResource((signal) => get(`/eda/reports/${encodeURIComponent(reportId)}/chart-data`, signal), reportId, revision);
+async function readChart(path, signal) {
+  for (let attempt = 0; ; attempt += 1) {
+    try {
+      return await get(path, signal, 60000);
+    } catch (error) {
+      if (error.status !== 429 || attempt >= 19 || signal.aborted) throw error;
+      // A canceled chart can still be finishing on the server. Wait for its
+      // calculation slot, and stop retrying as soon as this selection changes.
+      await new Promise((resolve, reject) => {
+        const abort = () => {
+          clearTimeout(timer);
+          reject(signal.reason);
+        };
+        const timer = setTimeout(() => {
+          signal.removeEventListener("abort", abort);
+          resolve();
+        }, 1500);
+        signal.addEventListener("abort", abort, { once: true });
+        if (signal.aborted) abort();
+      });
+    }
+  }
+}
+
+export default function DynamicEda({ figure, days, stations, revision, refresh }) {
+  const kind = figure.filename.startsWith("decomposition_") ? "decomposition"
+    : figure.filename === "correlation_all.png" ? "correlation"
+    : figure.filename === "weekly_seasonality.png" ? "seasonality" : "trend";
+  const path = `/eda/chart-data?${query({ kind, days, station_id: figure.station_id })}`;
+  const data = useResource((signal) => readChart(path, signal), path, revision);
   return <Feedback resource={data} retry={refresh}>{(tables) => <EdaGraph tables={tables} figure={figure} stations={stations} />}</Feedback>;
 }
 
@@ -34,7 +62,11 @@ function EdaGraph({ tables, figure, stations }) {
     }
     const useMonth = stations.length > 0 && stations.every((station) => tables.monthly.filter((row) => row.station_id === station.station_id && yes(row.complete)).length >= 3);
     const rows = useMonth ? tables.monthly : tables.weekly;
-    return { panels: stations.map((station) => ({ title: station.name, series: [{ label: useMonth ? "Tháng" : "Tuần", points: rows.filter((row) => row.station_id === station.station_id).map((row) => [row.period, numeric(row.mean_bikes)]) }] })) };
+    return { panels: stations.map((station) => {
+      const selected = rows.filter((row) => row.station_id === station.station_id);
+      return { title: station.name, series: selected.filter((row) => yes(row.complete)).length < 2 ? []
+        : [{ label: useMonth ? "Tháng" : "Tuần", points: selected.map((row) => [row.period, yes(row.complete) ? numeric(row.mean_bikes) : null]) }] };
+    }) };
   }, [tables, name, figure.station_id, stations]);
   if (graph.matrix) return <Matrix rows={graph.matrix} />;
   return <div className="dynamic-eda-panels">{graph.panels.map((panel, index) => <section key={index}><h3>{panel.title}</h3><Plot title={panel.title} series={panel.series} weekday={graph.weekday} /></section>)}</div>;

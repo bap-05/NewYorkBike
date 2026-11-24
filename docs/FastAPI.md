@@ -1,10 +1,15 @@
 # FastAPI — Dữ liệu và kích hoạt dịch vụ Citi Bike
 
-EDA trên web: `GET /api/eda` và
-`GET /api/eda/reports/{report_id}/figures/{filename}`. Chỉ đọc report hoàn tất tại
-`API_EDA_REPORT_DIR` (mặc định artifacts/eda); không gọi database hoặc chạy EDA từ
-request này. Chỉ trả metadata/thống kê cho phép và PNG, không công bố HTML/CSV hay
-đường dẫn máy chủ. Xem [hướng dẫn EDA](EDA.md).
+EDA trên web đọc trực tiếp DB: `GET /api/eda/series` cho ngày/tuần/tháng;
+`GET /api/eda/chart-data?kind=trend|seasonality|correlation|decomposition&days=28`
+cho xu hướng, mùa vụ, tương quan và phân rã. `days` từ 7 đến 90, có thể lọc
+`station_id`; tối đa 200.000 mẫu và 100 trạm, vượt giới hạn trả 422 để thu hẹp truy vấn.
+Mỗi tiến trình chỉ tính một biểu đồ EDA nâng cao tại một thời điểm; yêu cầu trùng
+trả 429 và `Retry-After: 3`, có thể bấm Thử lại khi lượt trước hoàn tất.
+Không đọc file báo cáo, không ghi DB, không chạy dự báo hay huấn luyện từ các GET này.
+Các endpoint `/api/eda` và `/api/eda/reports/...` chỉ giữ cho bản xuất file tùy chọn.
+Trên Render đặt `EDA_AUTO_UPDATE=false` nếu chỉ dùng biểu đồ DB; cập nhật cả frontend
+và backend. Xem [hướng dẫn EDA](EDA.md).
 
 API ở `services/database-api/app/`, dùng SQLAlchemy model và Aiven MySQL hiện có. Các GET
 công khai dùng transaction READ ONLY, chỉ đọc Silver/Gold đã công bố. Các POST quản trị

@@ -22,6 +22,11 @@ export async function get(path, signal, timeoutMs = 20000) {
     );
   }
   if (!response.ok) {
+    if (response.status === 429) {
+      const error = new Error("Đang xử lý biểu đồ khác. Vui lòng thử lại sau.");
+      error.status = 429;
+      throw error;
+    }
     if (response.status === 404)
       throw new Error("Không tìm thấy trạm hoặc kết quả yêu cầu.");
     if (response.status === 422)

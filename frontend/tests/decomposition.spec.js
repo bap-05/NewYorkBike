@@ -1,51 +1,31 @@
 import { test, expect } from "@playwright/test";
+import { prepareEda, expectNoReportReads } from "./edaHelpers.js";
 
-test("EDA decomposition changes station and renders four interactive components", async ({
-  page,
-}) => {
+test("DB decomposition changes station and keeps QUAN dialog, zoom and mobile controls", async ({ page, request }) => {
+  const { stations, requests } = await prepareEda(page, request);
   const errors = [];
   page.on("pageerror", (error) => errors.push(error.message));
   await page.goto("/analysis");
-  const chart = page.getByRole("combobox", {
-    name: "Biểu đồ EDA",
-    exact: true,
-  });
-  await expect(chart.locator('option[value="decomposition"]')).toHaveCount(1);
-  await chart.selectOption("decomposition");
-  const station = page.getByRole("combobox", {
-    name: "Trạm phân rã chuỗi thời gian",
-    exact: true,
-  });
+  await page.getByLabel("Biểu đồ EDA", { exact: true }).selectOption("decomposition");
+  const station = page.getByLabel("Trạm phân rã chuỗi thời gian", { exact: true });
   await expect(station).toBeVisible();
-  const options = await station
-    .locator("option")
-    .evaluateAll((nodes) =>
-      nodes.map((node) => ({
-        value: node.value,
-        text: node.textContent.trim(),
-      })),
-    );
-  expect(options.length).toBeGreaterThan(1);
   const charts = page.locator(".eda-content .dynamic-chart");
   await expect(charts).toHaveCount(4);
-  for (const title of ["Chuỗi gốc", "Xu hướng", "Mùa vụ (24 giờ)", "Phần dư"]) {
-    await expect(page.getByRole("heading", { name: title, exact: true })).toBeVisible();
-  }
   const observed = charts.first();
-  await expect(observed).toBeVisible();
   await expect.poll(() => observed.locator("circle").count()).toBeGreaterThan(0);
   const initial = await observed.innerHTML();
-  await station.selectOption(options[1].value);
+  await station.selectOption(stations[1].station_id);
   await expect.poll(() => observed.innerHTML()).not.toBe(initial);
-  const zoom = page.locator(".eda-content .chart-zoom").first();
-  await zoom.getByRole("button", { name: "Phóng to biểu đồ" }).click();
-  await expect(zoom.locator(".chart-zoom-controls")).toContainText("150%");
-  await page.screenshot({
-    path: "../artifacts/frontend/decomposition-desktop.png",
-    fullPage: true,
-  });
+  await page.getByRole("button", { name: "Mở lớn biểu đồ Chuỗi gốc", exact: true }).click();
+  const dialog = page.getByRole("dialog", { name: "Chuỗi gốc", exact: true });
+  await expect(dialog).toBeVisible();
+  await dialog.getByRole("button", { name: "Phóng to biểu đồ", exact: true }).click();
+  await expect(dialog.locator(".chart-zoom-controls")).toContainText("120%");
+  await dialog.getByRole("button", { name: "Đóng", exact: true }).click();
   await page.setViewportSize({ width: 390, height: 844 });
   await expect(station).toBeVisible();
   await expect(observed).toBeVisible();
+  expect(requests.some((url) => url.includes("/api/eda/chart-data?") && url.includes("kind=decomposition"))).toBeTruthy();
+  expectNoReportReads(requests);
   expect(errors).toEqual([]);
 });

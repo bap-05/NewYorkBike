@@ -44,13 +44,25 @@ Mỗi trạm có một ảnh bốn ô: chuỗi gốc, xu hướng, mùa vụ và
 Đây là phân tích hồi cứu: STL sử dụng cả hai phía của chuỗi, không đưa các thành phần này
 trực tiếp vào mô hình dự báo hoặc kiểm thử lịch sử vì có thể gây rò rỉ dữ liệu tương lai.
 
-FastAPI đọc báo cáo đã hoàn tất trong `artifacts/eda/` ở máy chủ API, có thể đổi bằng
+Giao diện EDA đọc trực tiếp dữ liệu đã công bố trong DB, không cần tạo report trước.
+Biểu đồ ngày/tuần/tháng dùng `/api/eda/series`. Xu hướng, mùa vụ, tương quan và phân rã
+dùng `/api/eda/chart-data?kind=trend|seasonality|correlation|decomposition&days=28`;
+có thể chọn 28/60/90 ngày và trạm phân rã. Giữ nguyên cửa sổ mở lớn, zoom và thao tác
+xem giá trị của giao diện QUAN. Số liệu thiếu được giữ là NULL, chu kỳ thiếu độ phủ
+được ngắt, không thay bằng 0. API chỉ đọc DB, không dự báo hay huấn luyện lại.
+Giới hạn 100 trạm và 200.000 mẫu; dữ liệu SQL được đọc theo lô để giảm bộ nhớ.
+
+Trên Render đặt `EDA_AUTO_UPDATE=false` để tắt xuất báo cáo nền; biểu đồ DB vẫn chạy.
+Không cần push `artifacts`, chép báo cáo GitHub Actions hoặc migration mới. Cần deploy
+cả backend và frontend có route mới. Phần hướng dẫn xuất HTML/PNG dưới đây là tùy chọn.
+
+Với endpoint báo cáo xuất file cũ, FastAPI đọc báo cáo đã hoàn tất trong `artifacts/eda/` ở máy chủ API, có thể đổi bằng
 `API_EDA_REPORT_DIR` trong `.env`. Report chỉ được công bố sau khi cả summary.json
 và report.html tồn tại. API chọn report có generated_at mới nhất đúng nguồn, không
 chạy EDA trong HTTP request. API khởi động tiến trình nền riêng để kiểm tra dữ liệu
 mới ngay khi khởi động và mỗi 15 phút (cần các phụ thuộc trong requirements.txt).
 Mặc định dùng cửa sổ 28 ngày, tối đa 200.000 mẫu; không âm thầm cắt dữ liệu.
-Web tự tải báo cáo hoàn tất mỗi phút. `EDA_AUTO_UPDATE=false` tắt lịch nền.
+Web tự đọc số liệu DB mới mỗi phút. `EDA_AUTO_UPDATE=false` chỉ tắt lịch xuất file nền.
 Khóa theo thư mục báo cáo tránh tạo trùng khi nhiều API worker cùng chạy. Thay đổi
 lượt thu thập đã công bố, thêm lịch sử, thời tiết/liên kết hoặc đổi ngày New York
 sẽ kích hoạt tạo lại. Không có thay đổi thì bỏ qua. Báo cáo mới được tạo trong
@@ -58,7 +70,7 @@ thư mục tạm ẩn và đổi tên sau khi hoàn tất; lỗi không thay bá
 kiểm tra ở `.automatic.json`, không ghi dữ liệu vào DB. Báo cáo cũ được giữ nguyên.
 
 Sau khi thêm route mới, khởi động lại tiến trình FastAPI nếu không dùng `--reload`.
-Vite tự cập nhật giao diện đang chạy. Nếu chưa có báo cáo ở máy chủ API, chờ lịch
+Vite tự cập nhật giao diện đang chạy. Nếu cần bản xuất file ở máy chủ API, chờ lịch
 nền hoàn tất hoặc tạo bằng CLI bên dưới. Nếu API ở máy khác, sao chép nguyên thư mục
 báo cáo tới thư mục EDA được cấu hình tại máy đó. Không cần migration mới.
 
