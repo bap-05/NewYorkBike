@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { get, query } from "../lib/api.js";
 import { useResource } from "../lib/useResource.js";
 import { Empty, Feedback } from "./UI.jsx";
@@ -13,9 +13,9 @@ const yes = (value) => String(value).toLowerCase() === "true";
 async function readChart(path, signal) {
   for (let attempt = 0; ; attempt += 1) {
     try {
-      return await get(path, signal, 60000);
+      return await get(path, signal, 120000);
     } catch (error) {
-      if (error.status !== 429 || attempt >= 19 || signal.aborted) throw error;
+      if (error.status !== 429 || attempt >= 79 || signal.aborted) throw error;
       // A canceled chart can still be finishing on the server. Wait for its
       // calculation slot, and stop retrying as soon as this selection changes.
       await new Promise((resolve, reject) => {
@@ -39,7 +39,16 @@ export default function DynamicEda({ figure, days, stations, revision, refresh }
     : figure.filename === "correlation_all.png" ? "correlation"
     : figure.filename === "weekly_seasonality.png" ? "seasonality" : "trend";
   const path = `/eda/chart-data?${query({ kind, days, station_id: figure.station_id })}`;
-  const data = useResource((signal) => readChart(path, signal), path, revision);
+  const [requestRevision, setRequestRevision] = useState(revision);
+  const seenRevision = useRef(revision);
+  const data = useResource((signal) => readChart(path, signal), path, requestRevision);
+  useEffect(() => {
+    if (seenRevision.current === revision) return;
+    seenRevision.current = revision;
+    // A slow first load must finish even when the minute refresh fires. The
+    // next tick can refresh it; changing a chart still cancels immediately.
+    if (!data.loading) setRequestRevision(revision);
+  }, [revision, data.loading]);
   return <Feedback resource={data} retry={refresh}>{(tables) => <EdaGraph tables={tables} figure={figure} stations={stations} />}</Feedback>;
 }
 

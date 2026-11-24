@@ -1,9 +1,10 @@
 """Load published Silver only; retain incomplete rows for quality auditing."""
 import json
+from types import SimpleNamespace
 
 import numpy as np
 import pandas as pd
-from sqlalchemy import func
+from sqlalchemy import func, select
 from sqlalchemy.orm import aliased
 
 from analysis.dataset import selected_stations
@@ -31,43 +32,55 @@ def load_frame(session, settings, options, start, cutoff, max_rows=100000, *, in
     firsts = dict(session.execute(visible.with_only_columns(BikeObservation.station_id,
         func.min(BikeObservation.sampled_at)).where(BikeObservation.station_id.in_(by_id),
         BikeObservation.sampled_at < cutoff).group_by(BikeObservation.station_id)).all())
-    weather_run = aliased(CollectionRun)
     query = visible
     if include_weather:
-        query = query.add_columns(WeatherObservation, weather_run.status,
-            weather_run.finished_at, weather_run.source).outerjoin(ObservationWeatherLink,
-            ObservationWeatherLink.bike_observation_id == BikeObservation.id).outerjoin(
-            WeatherObservation, WeatherObservation.id == ObservationWeatherLink.weather_observation_id).outerjoin(
-            weather_run, weather_run.id == WeatherObservation.collection_run_id)
+        # Bikes in the same hour share weather. Fetch only the chosen link here
+        # and load each distinct weather observation once after closing this
+        # streaming cursor, rather than transferring/decoding it for every bike.
+        query = query.add_columns(ObservationWeatherLink.weather_observation_id).outerjoin(
+            ObservationWeatherLink, ObservationWeatherLink.bike_observation_id == BikeObservation.id)
     query = query.where(
         BikeObservation.station_id.in_(by_id), BikeObservation.sampled_at >= start,
         BikeObservation.sampled_at < cutoff).order_by(BikeObservation.sampled_at, BikeObservation.id).limit(max_rows + 1)
     records = []
-    # Stream ORM batches instead of buffering every observation (and joined
-    # weather object) in memory before building the analytical frame.
-    with session.execute(query.execution_options(yield_per=500)) as results:
+    with session.execute(query.execution_options(yield_per=2000)) as results:
         for result in results:
-            bike, weather, weather_status, weather_finished, weather_source = (
-                result if include_weather else (result[0], None, None, None, None))
+            bike, weather_id = result if include_weather else (result[0], None)
             if len(records) >= max_rows:
                 raise ValueError('EDA row limit exceeded; narrow the requested date range')
             station = by_id[bike.station_id]
-            published = weather is not None and (weather.collection_run_id is None or (
-                weather_status in ('success', 'partial') and weather_finished is not None
-                and weather_finished <= cutoff and weather_source == settings.bike_source))
             row = {'observation_id': bike.id, 'source': bike.source, 'station_id': bike.station_id,
                 'station_name': station.name, 'capacity': station.capacity, 'quality_status': bike.quality_status,
                 'sampled_at': bike.sampled_at, 'collected_at': bike.collected_at,
                 'source_observed_at': bike.source_observed_at, 'available_bikes': bike.available_bikes,
                 'available_docks': bike.available_docks, 'bike_usable': usable_bike(bike),
-                'weather_usable': usable_weather(weather, bike, station, cutoff, options,
-                    settings.weather_max_age_seconds, published),
-                'weather_id': weather.id if weather else None,
-                'weather_time': weather.weather_time if weather else None,
-                'weather_units': json.dumps(weather.units, ensure_ascii=False) if weather else None,
-                'weather_interval_seconds': weather.interval_seconds if weather else None}
-            row.update({column: getattr(weather, column) if weather else None for column in WEATHER})
+                'weather_usable': False, 'weather_id': weather_id,
+                'weather_time': None, 'weather_units': None, 'weather_interval_seconds': None}
+            row.update({column: None for column in WEATHER})
             records.append(row)
+    weather_ids = list({row['weather_id'] for row in records if row['weather_id'] is not None})
+    weather_by_id = {}
+    weather_run = aliased(CollectionRun)
+    for begin in range(0, len(weather_ids), 500):
+        query = select(WeatherObservation, weather_run.status, weather_run.finished_at, weather_run.source).outerjoin(
+            weather_run, weather_run.id == WeatherObservation.collection_run_id).where(
+            WeatherObservation.id.in_(weather_ids[begin:begin+500]))
+        for weather, status, finished, source in session.execute(query):
+            published = weather.collection_run_id is None or (
+                status in ('success', 'partial') and finished is not None
+                and finished <= cutoff and source == settings.bike_source)
+            weather_by_id[weather.id] = (weather, published, json.dumps(weather.units, ensure_ascii=False))
+    for row in records:
+        selected = weather_by_id.get(row['weather_id'])
+        if selected is None:
+            row['weather_id'] = None
+            continue
+        weather, published, units = selected
+        row.update(weather_time=weather.weather_time, weather_units=units,
+            weather_interval_seconds=weather.interval_seconds,
+            weather_usable=usable_weather(weather, SimpleNamespace(collected_at=row['collected_at']),
+                by_id[row['station_id']], cutoff, options, settings.weather_max_age_seconds, published))
+        row.update({column: getattr(weather, column) for column in WEATHER})
     frame = pd.DataFrame(records, columns=BASE_COLUMNS)
     for column in TIME_COLUMNS:
         frame[column] = pd.to_datetime(frame[column], utc=True)
@@ -84,7 +97,12 @@ def load_frame(session, settings, options, start, cutoff, max_rows=100000, *, in
 
 def mark_latest_slots(frame, cadence):
     frame = frame.copy()
-    frame['slot_utc'] = pd.to_datetime([cadence.slot_at(value.to_pydatetime()) for value in frame.sampled_at], utc=True)
+    # Vectorized epoch-aligned slots, with the same declared transitions as
+    # SamplingCadence.slot_at; avoid a Python datetime conversion for every row.
+    frame['slot_utc'] = frame.sampled_at.dt.floor(f'{cadence.initial_interval_seconds}s')
+    for effective_at, seconds in cadence.changes:
+        mask = frame.sampled_at >= pd.Timestamp(effective_at)
+        frame.loc[mask, 'slot_utc'] = frame.loc[mask, 'sampled_at'].dt.floor(f'{seconds}s')
     # Current-source observations take precedence if an archive overlaps their slot,
     # including a newer inactive/invalid marker. Never replace it with an older valid archive.
     ordered = frame.assign(_archive_priority=frame.source.ne('citibike_historical').astype(int)).sort_values(

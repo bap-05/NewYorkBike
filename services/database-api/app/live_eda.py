@@ -59,8 +59,8 @@ def _read_chart_data(ctx, source, kind, days, station_id=None):
         stations = [repo.station_or_404(ctx, source, station_id)]
     else:
         query = select(Station).where(Station.source == source, Station.is_monitored.is_(True))
-        if source == ctx.settings.bike_source and ctx.settings.station_ids:
-            query = query.where(Station.station_id.in_(ctx.settings.station_ids))
+        # Match the public station list. STATION_IDS configures collectors and
+        # workers; it must not hide monitored stations that already have history.
         stations = list(ctx.session.scalars(query.order_by(Station.station_id).limit(101)))
         if len(stations) > 100:
             raise HTTPException(422, 'Select a station to narrow the query')

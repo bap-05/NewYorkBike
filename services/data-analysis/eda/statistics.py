@@ -53,14 +53,18 @@ def missingness(frame, stations):
 def daily_coverage(frame, stations, firsts, cadence, options, start, cutoff):
     zone = ZoneInfo(options.timezone_name)
     result = []
+    # Partition once instead of scanning the full multi-station frame per day.
+    groups = frame.loc[frame.slot_latest].groupby(['station_id', 'local_date']).groups
+    empty = frame.iloc[:0]
     for station in stations:
         first = firsts.get(station.station_id)
         day = start.astimezone(zone).date()
         while datetime.combine(day, time.min, zone).astimezone(UTC) < cutoff:
             begin = max(start, datetime.combine(day, time.min, zone).astimezone(UTC))
             end = min(cutoff, datetime.combine(day + timedelta(days=1), time.min, zone).astimezone(UTC))
-            rows = frame.loc[(frame.station_id == station.station_id) & frame.slot_latest
-                & (frame.sampled_at >= begin) & (frame.sampled_at < end)]
+            indices = groups.get((station.station_id, day.isoformat()))
+            rows = frame.loc[indices] if indices is not None else empty
+            rows = rows.loc[(rows.sampled_at >= begin) & (rows.sampled_at < end)]
             expected = set()
             if first is not None:
                 lower = max(begin, cadence.slot_at(first))

@@ -96,6 +96,19 @@ def test_live_chart_validation_limits_and_empty_data(api, monkeypatch):
     assert 'Too many observations' in response.json()['detail']
 
 
+def test_live_charts_include_monitored_history_outside_worker_station_config(api, monkeypatch):
+    client, session, app = api
+    configure(app, monkeypatch)
+    app.state.clock = lambda: CUTOFF
+    populate(session, station_count=3, days=21)
+    app.state.settings = replace(app.state.settings, station_ids=('TEST-1',))
+    response = client.get('/api/eda/chart-data?kind=trend')
+    assert response.status_code == 200, response.text
+    data = response.json()
+    assert {row['station_id'] for row in data['stations']} == {'TEST-0', 'TEST-1', 'TEST-2'}
+    assert {row['station_id'] for row in data['weekly'] if row['complete']} == {'TEST-0', 'TEST-1', 'TEST-2'}
+
+
 def test_overlapping_chart_requests_are_bounded_and_release_after_failure(monkeypatch):
     from concurrent.futures import ThreadPoolExecutor
     from threading import Event

@@ -16,6 +16,33 @@ test("EDA reads fresh DB data each minute without requiring a file report", asyn
   expectNoReportReads(requests);
 });
 
+test("minute refresh does not interrupt an EDA request taking over sixty seconds", async ({ page, request }) => {
+  await prepareEda(page, request);
+  const payload = await request.get("/api/eda/chart-data?kind=correlation&days=28");
+  expect(payload.ok()).toBeTruthy();
+  const body = await payload.json();
+  let calls = 0;
+  let finish;
+  const pending = new Promise((resolve) => { finish = resolve; });
+  await page.route("**/api/eda/chart-data?kind=correlation&*", async (route) => {
+    calls += 1;
+    await pending;
+    await route.fulfill({ json: body });
+  });
+  await page.goto("/analysis");
+  await page.getByLabel("Biểu đồ EDA", { exact: true }).selectOption("correlation_all.png");
+  // React StrictMode mounts the dev component twice. Hold both requests so
+  // the test measures refresh cancellation, rather than the dev-only probe.
+  await expect.poll(() => calls).toBe(2);
+  await page.clock.fastForward(65000);
+  expect(calls).toBe(2);
+  finish();
+  await expect(page.getByRole("img", { name: "Ma trận tương quan Pearson" })).toBeVisible();
+  await page.clock.fastForward(60000);
+  await expect.poll(() => calls).toBe(3);
+  await expect(page.getByRole("img", { name: "Ma trận tương quan Pearson" })).toBeVisible();
+});
+
 test("QUAN calendar controls retain all nine charts, dialog and mobile layout", async ({ page, request }) => {
   const { now, requests } = await prepareEda(page, request);
   const errors = [];
