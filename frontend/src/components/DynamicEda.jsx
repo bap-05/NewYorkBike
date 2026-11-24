@@ -49,7 +49,12 @@ export default function DynamicEda({ figure, days, stations, revision, refresh }
     // next tick can refresh it; changing a chart still cancels immediately.
     if (!data.loading) setRequestRevision(revision);
   }, [revision, data.loading]);
-  return <Feedback resource={data} retry={refresh}>{(tables) => <EdaGraph tables={tables} figure={figure} stations={stations} />}</Feedback>;
+  return <Feedback resource={data} retry={refresh}>{(tables) => tables.status === "missing"
+    ? <Empty title="Chưa có kết quả EDA đã tính">Chạy Citi Bike analysis để cập nhật kết quả vào database.</Empty>
+    : <>
+      {tables.published_at && <p className="subtle">Dữ liệu tính đến {new Date(tables.cutoff_utc).toLocaleString("vi-VN", { timeZone: "America/New_York" })} (New York).</p>}
+      <EdaGraph tables={tables} figure={figure} stations={stations} />
+    </>}</Feedback>;
 }
 
 function EdaGraph({ tables, figure, stations }) {

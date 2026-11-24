@@ -2,10 +2,13 @@
 
 EDA trên web đọc trực tiếp DB: `GET /api/eda/series` cho ngày/tuần/tháng;
 `GET /api/eda/chart-data?kind=trend|seasonality|correlation|decomposition&days=28`
-cho xu hướng, mùa vụ, tương quan và phân rã. `days` từ 7 đến 90, có thể lọc
-`station_id`; tối đa 200.000 mẫu và 100 trạm, vượt giới hạn trả 422 để thu hẹp truy vấn.
-Mỗi tiến trình chỉ tính một biểu đồ EDA nâng cao tại một thời điểm; yêu cầu trùng
-trả 429 và `Retry-After: 3`, có thể bấm Thử lại khi lượt trước hoàn tất.
+cho xu hướng, mùa vụ, tương quan và phân rã. `days` là 28, 60 hoặc 90; phân rã cần
+`station_id`. API chỉ SELECT JSON đã tính từ `luot_chay_dich_vu`, không quét lịch sử
+hoặc chạy STL trong GET. Thiếu kết quả trả `status='missing'`; giao diện hướng dẫn chạy analysis.
+Kết quả có `storage='precomputed'`, `cutoff_utc`, `published_at` và giữ NULL cho dữ liệu thiếu.
+Workflow **Citi Bike analysis** hoặc `analysis.main --once` tính và công bố nguyên bộ
+kết quả theo transaction; lỗi giữ bộ cũ. `POST /api/services/analysis/run` cập nhật cả
+thống kê và EDA; `POST /api/services/eda/run` chỉ tính EDA, cùng Bearer token quản trị.
 Không đọc file báo cáo, không ghi DB, không chạy dự báo hay huấn luyện từ các GET này.
 Các endpoint `/api/eda` và `/api/eda/reports/...` chỉ giữ cho bản xuất file tùy chọn.
 Trên Render đặt `EDA_AUTO_UPDATE=false` nếu chỉ dùng biểu đồ DB; cập nhật cả frontend

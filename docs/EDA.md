@@ -1,8 +1,8 @@
 # Báo cáo EDA độc lập — Citi Bike
 
 EDA khám phá dữ liệu để kiểm tra chất lượng và chuẩn bị cho huấn luyện. Công cụ
-`services/data-analysis/eda/` chỉ đọc Silver trên Aiven, xuất HTML/CSV/JSON/PNG ở máy. Không xóa dữ liệu,
-không ghi Gold, không huấn luyện/kích hoạt model và không đổi lịch worker.
+`services/data-analysis/eda/` đọc Silver trên Aiven. CLI xuất HTML/CSV/JSON/PNG ở máy;
+worker `eda.snapshots` tính kết quả số và lưu trong DB để phục vụ web nhanh, không train model.
 
 ## Xem trên giao diện React
 
@@ -10,7 +10,7 @@ Các biểu đồ đường/phân tán/phân phối đã có ô chọn một ng�
 tháng lịch cụ thể theo New York, kèm lựa chọn trạm. Dữ liệu của kỳ đọc trực
 tiếp từ Aiven bằng API chỉ đọc; không phụ thuộc thời điểm tạo báo cáo ảnh.
 Kỳ hiện tại được báo chưa kết thúc, kỳ không có mẫu được hiển thị trống.
-Các biểu đồ còn lại và bảng thống kê vẫn đọc từ báo cáo đã tạo.
+Các biểu đồ nâng cao đọc JSON đã được **Citi Bike analysis** tính và lưu trong DB.
 
 Bản hiện tại có 12 hình tổng quan: đường, phân tán, phân phối theo
 ngày/tuần/tháng, ma trận tương quan, xu hướng và mùa vụ tuần có điều kiện dữ liệu. Trang Dự đoán có
@@ -44,13 +44,22 @@ Mỗi trạm có một ảnh bốn ô: chuỗi gốc, xu hướng, mùa vụ và
 Đây là phân tích hồi cứu: STL sử dụng cả hai phía của chuỗi, không đưa các thành phần này
 trực tiếp vào mô hình dự báo hoặc kiểm thử lịch sử vì có thể gây rò rỉ dữ liệu tương lai.
 
-Giao diện EDA đọc trực tiếp dữ liệu đã công bố trong DB, không cần tạo report trước.
+Giao diện EDA đọc dữ liệu đã công bố trong DB, không cần tạo report file trước.
 Biểu đồ ngày/tuần/tháng dùng `/api/eda/series`. Xu hướng, mùa vụ, tương quan và phân rã
 dùng `/api/eda/chart-data?kind=trend|seasonality|correlation|decomposition&days=28`;
 có thể chọn 28/60/90 ngày và trạm phân rã. Giữ nguyên cửa sổ mở lớn, zoom và thao tác
 xem giá trị của giao diện QUAN. Số liệu thiếu được giữ là NULL, chu kỳ thiếu độ phủ
 được ngắt, không thay bằng 0. API chỉ đọc DB, không dự báo hay huấn luyện lại.
-Giới hạn 100 trạm và 200.000 mẫu; dữ liệu SQL được đọc theo lô để giảm bộ nhớ.
+Worker giới hạn 100 trạm và 500.000 mẫu, đọc cửa sổ lớn nhất một lần rồi tính các cửa sổ
+28/60/90 ngày. Dấu vân tay nội dung nhận biết cả sửa/xóa mẫu cũ, thay thời tiết, chất lượng,
+metadata trạm và mốc giờ. Không đổi thì bỏ qua tính lại. API GET không tải lịch sử thô.
+
+Chạy `python -m analysis.main --once` hoặc workflow **Citi Bike analysis** để cập nhật.
+Kết quả nằm trong `luot_chay_dich_vu`, `ten_dich_vu='eda_snapshot'`; lượt tính có tên `eda`.
+Toàn bộ kết quả được công bố trong một transaction, chỉ thay snapshot EDA cũ cùng phiên bản
+và cửa sổ; không xóa dữ liệu nguồn hoặc kết quả dịch vụ khác. Lỗi giữ bộ thành công trước đó.
+GET trả thời điểm dữ liệu và `status='missing'` nếu chưa có kết quả. API có xác thực
+`POST /api/services/eda/run` cho phép tạo lại riêng EDA với `{"rebuild": true}`.
 
 Trên Render đặt `EDA_AUTO_UPDATE=false` để tắt xuất báo cáo nền; biểu đồ DB vẫn chạy.
 Không cần push `artifacts`, chép báo cáo GitHub Actions hoặc migration mới. Cần deploy

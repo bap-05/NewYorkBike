@@ -31,6 +31,7 @@ class Service(str, Enum):
     prediction = "prediction"
     clustering = "clustering"
     day_ahead = "day-ahead"
+    eda = "eda"
 
 
 class RunRequest(BaseModel):
@@ -67,6 +68,11 @@ def execute_job(app, job_id, service, body, model):
                 from analysis.worker import analyze_once
                 run = analyze_once(session, settings, AnalysisOptions.load(), cutoff=body.cutoff, rebuild=body.rebuild)
                 result = {"service_run_id": run.id, "result_count": run.result_count, "summary": run.summary}
+            elif service == "eda":
+                from eda.snapshots import publish_once
+                run = publish_once(session, settings, cutoff=body.cutoff, rebuild=body.rebuild)
+                result = {"service_run_id": run.id, "result_count": run.result_count,
+                    "summary": run.summary, "trained": False}
             elif service == "prediction":
                 from prediction.config import PredictionOptions
                 from prediction.worker import predict_once
@@ -102,6 +108,16 @@ def execute_job(app, job_id, service, body, model):
                     "eligible_stations": run.summary["eligible_stations"],
                     "reason": run.parameters.get("reason"), "selected_k": run.parameters.get("selected_k")}
             status = "skipped" if run is None or run.status in ("skipped", "insufficient_data") else run.status
+        if service == "analysis":
+            from eda.snapshots import publish_once
+            with service_session(engine, "eda") as session:
+                snapshots = publish_once(session, settings, cutoff=body.cutoff, rebuild=body.rebuild)
+                result['eda'] = {"service_run_id": snapshots.id, "status": snapshots.status,
+                    "result_count": snapshots.result_count}
+                result['analysis_result_count'] = result['result_count']
+                result['result_count'] += snapshots.result_count
+                if snapshots.status == 'success':
+                    status = 'success'
     except RuntimeError:
         error = "Service busy or unavailable; retry after the current worker finishes"
     except Exception:
@@ -127,8 +143,8 @@ def clustering_model(request: Request):
 
 @router.post("/{service}/run", status_code=202, response_model=JobView, dependencies=[Depends(authorize)])
 def activate(service: Service, body: RunRequest, request: Request, tasks: BackgroundTasks):
-    if body.cutoff is not None and (service not in (Service.analysis, Service.clustering) or body.cutoff > utcnow()):
-        raise HTTPException(422, "Cutoff must be in the past and is only supported for analysis or clustering")
+    if body.cutoff is not None and (service not in (Service.analysis, Service.clustering, Service.eda) or body.cutoff > utcnow()):
+        raise HTTPException(422, "Cutoff must be in the past and is only supported for analysis, clustering or EDA")
     model = None
     if service == Service.clustering:
         from clustering.saved_model import load_model

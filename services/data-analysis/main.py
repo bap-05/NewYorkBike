@@ -56,6 +56,11 @@ def run(settings, options, *, schedule=False, cutoff=None):
                     logger.info("analysis_run=%s cutoff=%s status=%s changed_metrics=%s attempts=%s",
                         result.id, display_time(result.scheduled_at), result.status, result.result_count, result.attempt_count)
                     logger.info("Analysis summary=%s", result.summary)
+                # Snapshot failure leaves Gold statistics and previous charts intact.
+                from eda.snapshots import publish_once
+                with service_session(engine, "eda") as session:
+                    snapshots = publish_once(session, settings, options, cutoff=cutoff)
+                    logger.info("EDA snapshots status=%s published=%s", snapshots.status, snapshots.result_count)
             except Exception as exc:
                 logger.error("Analysis failed (%s). Check MySQL, migrations and service_runs.", type(exc).__name__)
                 code = 1

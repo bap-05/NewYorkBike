@@ -41,6 +41,21 @@ def test_controls_disabled_or_unauthorized_and_cutoff_validation(api, monkeypatc
     assert client.post("/api/services/training/run", json={}, headers=HEADERS).status_code == 422
 
 
+def test_eda_activation_publishes_cached_charts_without_training(api, monkeypatch):
+    from eda import snapshots
+    client, session, app = api
+    setup_control(app, monkeypatch)
+    populate(session, station_count=3, days=21)
+    monkeypatch.setattr(snapshots, 'utcnow', lambda: CUTOFF)
+    response = client.post('/api/services/eda/run', json={'cutoff': CUTOFF.isoformat()}, headers=HEADERS)
+    assert response.status_code == 202, response.text
+    job = client.get(f'/api/services/jobs/{response.json()["job_id"]}', headers=HEADERS).json()
+    assert job['status'] == 'success' and job['result']['trained'] is False
+    assert job['result']['result_count'] == 27
+    data = client.get('/api/eda/chart-data?kind=decomposition&station_id=TEST-0').json()
+    assert data['storage'] == 'precomputed' and data['decomposition']
+
+
 def test_api_clustering_reuses_and_restores_without_training(api, monkeypatch, tmp_path):
     client, session, app = api
     setup_control(app, monkeypatch)

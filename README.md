@@ -204,7 +204,9 @@ Dự báo ngày mai không sử dụng trực tiếp mô hình thời tiết c�
 
 ## Báo cáo EDA
 
-EDA trên web đọc trực tiếp DB: biểu đồ ngày/tuần/tháng dùng `/api/eda/series`; xu hướng, mùa vụ, tương quan và phân rã dùng `/api/eda/chart-data`. Không cần file báo cáo hay thư mục `artifacts/eda`. Giao diện giữ bộ lọc, mở lớn biểu đồ và kiểm tra dữ liệu mới mỗi phút.
+EDA trên web đọc DB: biểu đồ ngày/tuần/tháng dùng `/api/eda/series`; xu hướng, mùa vụ, tương quan và phân rã dùng `/api/eda/chart-data`. **Citi Bike analysis** tính sẵn các cửa sổ 28/60/90 ngày rồi lưu JSON trong `luot_chay_dich_vu` (`ten_dich_vu='eda_snapshot'`). API chỉ đọc kết quả đã công bố, không tính lại lịch sử khi mở biểu đồ. Giao diện giữ bộ lọc, mở lớn biểu đồ, kiểm tra kết quả mỗi phút và ghi thời điểm dữ liệu.
+
+Chạy `.venv\Scripts\python.exe -m analysis.main --once` hoặc workflow **Citi Bike analysis** để cập nhật cả thống kê Gold và EDA. Trên GitHub, đặt `ANALYSIS_CODE_REF=QUAN` để lịch ở nhánh mặc định lấy đúng code deploy; `ENABLE_ANALYSIS_SCHEDULE=true` bật lịch 5 phút. Không đổi giao diện hoặc nhánh deploy. Nếu dữ liệu và mốc giờ không đổi, bỏ qua tính lại; nếu lỗi, giữ kết quả cũ. Khi chưa có kết quả, web báo chờ chạy analysis. API quản trị `POST /api/services/analysis/run` cập nhật cả hai; `POST /api/services/eda/run` chỉ cập nhật EDA, có xác thực và không train model.
 
 Trên Render có thể đặt `EDA_AUTO_UPDATE=false` để không chạy tiến trình xuất báo cáo Matplotlib cùng backend. Biến này chỉ điều khiển bản xuất file tùy chọn, không tắt biểu đồ đọc DB. Backend và frontend phải cùng dùng phiên bản có API `/api/eda/chart-data`.
 
