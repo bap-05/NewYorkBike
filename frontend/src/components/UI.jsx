@@ -63,7 +63,7 @@ export function PageTitle({ eyebrow, title, description, children }) {
   return (
     <div className="page-title">
       <div>
-        <div className="eyebrow">{eyebrow}</div>
+        {eyebrow && <div className="eyebrow">{eyebrow}</div>}
         <h1>{title}</h1>
         <p>{description}</p>
       </div>

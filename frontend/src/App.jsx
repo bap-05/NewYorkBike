@@ -9,6 +9,7 @@ import {
   Layers3,
   Map,
   MapPin,
+  Network,
   RefreshCw,
   Search,
   Sparkles,
@@ -33,6 +34,7 @@ import ErrorBoundary from "./components/ErrorBoundary.jsx";
 import ClusterExplorer from "./components/ClusterExplorer.jsx";
 import StationPage from "./pages/StationPage.jsx";
 import AnalysisPage from "./pages/AnalysisPage.jsx";
+import ClusteringPage from "./pages/ClusteringPage.jsx";
 import PredictionPage from "./pages/PredictionPage.jsx";
 import PredictionHistoryPage from "./pages/PredictionHistoryPage.jsx";
 
@@ -99,7 +101,11 @@ export default function App() {
             </NavLink>
             <NavLink to="/analysis">
               <Layers3 size={17} />
-              Phân tích & phân nhóm
+              Phân tích
+            </NavLink>
+            <NavLink to="/clusters">
+              <Network size={17} />
+              Phân nhóm
             </NavLink>
             <NavLink to="/predictions">
               <Sparkles size={17} />
@@ -123,6 +129,7 @@ export default function App() {
           <Route path="/stations" element={<StationPage />} />
           <Route path="/stations/:stationId" element={<StationPage />} />
           <Route path="/analysis" element={<AnalysisPage />} />
+          <Route path="/clusters" element={<ClusteringPage />} />
           <Route path="/predictions" element={<PredictionPage />} />
           <Route path="/predictions/:stationId/history" element={<PredictionHistoryPage />} />
           <Route

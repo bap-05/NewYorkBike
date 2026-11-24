@@ -1,18 +1,16 @@
 import { useState } from "react";
 import { useApp, RefreshButton } from "../App.jsx";
-import { allPages, get } from "../lib/api.js";
-import { number, reasons } from "../lib/data.js";
-import { useResource } from "../lib/useResource.js";
+import { allPages } from "../lib/api.js";
 import {
-  Badge,
-  Empty,
-  Feedback,
-  PageTitle,
-  Panel,
-} from "../components/UI.jsx";
+  analysisPoints,
+  analysisWindows,
+  defaultAnalysisRange,
+  rangeBounds,
+} from "../lib/analysisRange.js";
+import { useResource } from "../lib/useResource.js";
+import { Empty, Feedback, PageTitle, Panel } from "../components/UI.jsx";
 import LineChart from "../components/LineChart.jsx";
 import EdaPanel from "../components/EdaPanel.jsx";
-import { ClusterVisual } from "../components/ClusterExplorer.jsx";
 
 const metrics = {
   available_bikes_mean: "Số xe trung bình",
@@ -22,6 +20,12 @@ const metrics = {
   missing_weather_ratio: "Tỷ lệ thiếu thời tiết",
   missing_slot_ratio: "Tỷ lệ thiếu mẫu",
   temperature_bikes_correlation: "Tương quan nhiệt độ – số xe",
+};
+const periods = {
+  hour: { label: "Giờ", input: "datetime-local", gapMinutes: 90 },
+  day: { label: "Ngày", input: "date", gapMinutes: 25 * 60 },
+  week: { label: "Tuần", input: "week", gapMinutes: 8 * 24 * 60 },
+  month: { label: "Tháng", input: "month", gapMinutes: 32 * 24 * 60 },
 };
 
 export default function AnalysisPage() {
@@ -43,28 +47,40 @@ function AnalysisContent({ stations }) {
   const { revision, refresh } = useApp();
   const [stationId, setStationId] = useState(stations[0].station_id);
   const [aggregation, setAggregation] = useState("day");
+  const [range, setRange] = useState(() => defaultAnalysisRange("day"));
   const [metric, setMetric] = useState("available_bikes_mean");
+  const { first, last, error } = rangeBounds(aggregation, range);
+  const resourceKey = `analysis:${stationId}:${aggregation}:${metric}:${range.start}:${range.end}`;
+  const period = periods[aggregation];
+  const grouped = aggregation === "week" || aggregation === "month";
   const analysis = useResource(
-    (signal) =>
-      allPages(
-        "/analysis",
-        { station_id: stationId, aggregation, metric_name: metric },
-        signal,
-      ),
-    `analysis:${stationId}:${aggregation}:${metric}`,
-    revision,
-  );
-  const clusters = useResource(
-    (signal) => get("/clusters", signal),
-    "clusters",
+    async (signal) => {
+      if (error) return [];
+      const items = [];
+      for (const window of analysisWindows(first, last)) {
+        const page = await allPages(
+          "/analysis",
+          {
+            station_id: stationId,
+            aggregation: aggregation === "hour" ? "hour" : "day",
+            metric_name: metric,
+            ...window,
+          },
+          signal,
+        );
+        items.push(...page.items);
+      }
+      return analysisPoints(items, aggregation);
+    },
+    resourceKey,
     revision,
   );
   return (
     <>
       <PageTitle
         eyebrow="TỪ DỮ LIỆU ĐẾN GÓC NHÌN"
-        title="Hiểu nhịp vận hành."
-        description="Thống kê theo giờ, ngày New York và nhóm trạm có hành vi tương đồng."
+        title="Phân tích dữ liệu"
+        description="Xem thống kê theo giờ và khám phá dữ liệu theo ngày, tuần, tháng tại New York."
       >
         <RefreshButton />
       </PageTitle>
@@ -89,10 +105,17 @@ function AnalysisContent({ stations }) {
           <select
             aria-label="Tổng hợp"
             value={aggregation}
-            onChange={(e) => setAggregation(e.target.value)}
+            onChange={(e) => {
+              const next = e.target.value;
+              setAggregation(next);
+              setRange(defaultAnalysisRange(next));
+            }}
           >
-            <option value="day">Theo ngày</option>
-            <option value="hour">Theo giờ</option>
+            {Object.entries(periods).map(([value, { label }]) => (
+              <option key={value} value={value}>
+                Theo {label.toLowerCase()}
+              </option>
+            ))}
           </select>
         </label>
         <label>
@@ -109,109 +132,54 @@ function AnalysisContent({ stations }) {
             ))}
           </select>
         </label>
+        {["start", "end"].map((edge) => (
+          <label key={edge}>
+            {edge === "start" ? "Từ" : "Đến"} {period.label.toLowerCase()}
+            <input
+              type={period.input}
+              step={aggregation === "hour" ? 3600 : undefined}
+              max={defaultAnalysisRange(aggregation).end}
+              value={range[edge]}
+              onChange={(event) => {
+                const value = event.target.value;
+                setRange((previous) => ({ ...previous, [edge]: value }));
+              }}
+            />
+          </label>
+        ))}
       </div>
       <Panel
         title={metrics[metric]}
+        subtitle={
+          grouped
+            ? "Trung bình các chỉ số theo ngày đủ chất lượng trong từng kỳ · Giờ New York"
+            : "Khoảng đã chọn bao gồm cả mốc kết thúc · Giờ New York"
+        }
       >
-        <Feedback resource={analysis} retry={refresh}>
-          {(page) =>
-            !page.items.length ? (
-              <Empty title="Chưa có thống kê phù hợp" />
-            ) : (
-              <>
-                <LineChart
-                  key={`${stationId}:${aggregation}:${metric}`}
-                  label={metrics[metric]}
-                  inspect
-                  expandable
-                  unit={metric === "available_bikes_mean" ? " xe" : ""}
-                  gapMinutes={aggregation === "day" ? 25 * 60 : 90}
-                  points={page.items
-                    .slice()
-                    .reverse()
-                    .map((r) => ({
-                      at: r.window_start.utc,
-                      value: r.quality_status === "ok" ? r.metric_value : null,
-                      estimated: Boolean(r.dimensions?.uses_estimated_data),
-                    }))}
-                />
-
-              </>
-            )
-          }
-        </Feedback>
-      </Panel>
-      <Panel
-        title="Nhóm trạm tương đồng"
-      >
-        <Feedback resource={clusters} retry={refresh}>
-          {(data) => (
-            <>
-              {data.latest_attempt && (
-                <div className="cluster-meta">
-                  <Badge value={data.latest_attempt.status} />
-                  <span>
-                    Lượt mới nhất: {data.latest_attempt.run_date} ·{" "}
-                    {number(data.latest_attempt.eligible_stations)} trạm đủ điều
-                    kiện
-                  </span>
-                </div>
-              )}
-              {!data.latest_success ? (
-                <Empty title="Chưa có nhóm trạm được công bố">
-                  Lượt chạy hiện chưa tạo được nhóm hợp lệ. Cần đủ ngày, số mẫu
-                  và độ phủ theo cấu hình; đủ số ngày chưa bảo đảm đạt chất
-                  lượng.
-                  {data.latest_attempt?.reason && (
-                    <span className="reason-code">
-                      Lý do:{" "}
-                      {reasons[data.latest_attempt.reason] ||
-                        "Chưa đủ điều kiện phân nhóm"}
-                    </span>
-                  )}
-                </Empty>
+        {error ? (
+          <Empty title={error} />
+        ) : (
+          <Feedback resource={analysis} retry={refresh}>
+            {(points) =>
+              !points.length ? (
+                <Empty title="Chưa có thống kê phù hợp" />
               ) : (
-                <ClusterMembers
-                  run={data.latest_success}
-                  stations={stations}
-                  previous={data.latest_attempt?.id !== data.latest_success.id}
-                />
-              )}
-            </>
-          )}
-        </Feedback>
-      </Panel>
-    </>
-  );
-}
-
-function ClusterMembers({ run, stations, previous }) {
-  const { revision, refresh } = useApp();
-  const members = useResource(
-    (signal) => allPages(`/clusters/${run.id}/stations`, {}, signal),
-    `cluster-members:${run.id}`,
-    revision,
-  );
-  return (
-    <>
-      {previous && (
-        <div className="notice">
-          Lượt mới nhất chưa có nhóm hợp lệ. Đang hiển thị kết quả thành công
-          trước đó ngày {run.run_date}.
-        </div>
-      )}
-      <div className="cluster-summary">
-        <strong>{number(run.selected_k)} nhóm</strong>
-        <span>Điểm tách nhóm: {number(run.silhouette, 3)}</span>
-      </div>
-      <Feedback resource={members} retry={refresh}>
-        {(page) => (
-          <>
-            <ClusterVisual members={page.items} stations={stations} />
-
-          </>
+                <>
+                  <LineChart
+                    key={resourceKey}
+                    label={metrics[metric]}
+                    inspect
+                    expandable
+                    unit={metric === "available_bikes_mean" ? " xe" : ""}
+                    gapMinutes={period.gapMinutes}
+                    points={points}
+                  />
+                </>
+              )
+            }
+          </Feedback>
         )}
-      </Feedback>
+      </Panel>
     </>
   );
 }

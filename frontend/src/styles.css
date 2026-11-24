@@ -1593,7 +1593,7 @@ tbody tr:hover {
   }
   nav {
     display: grid;
-    grid-template-columns: repeat(5, minmax(0, 1fr));
+    grid-template-columns: repeat(6, minmax(0, 1fr));
     padding: 0 8px;
     gap: 2px;
     overflow: visible;

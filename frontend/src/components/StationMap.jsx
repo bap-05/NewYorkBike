@@ -68,6 +68,7 @@ function StationMapContent({
   clusterMembers = null,
   onSelect,
   focusSelected = true,
+  selectionOnly = false,
 }) {
   const [tileError, setTileError] = useState(false);
   const membership = new Map(
@@ -106,7 +107,7 @@ function StationMapContent({
               weight: 3,
               fillColor: clusterMembers
                 ? clusterColor(membership.get(s.station_id))
-                : color(s),
+                : selectionOnly ? "#167c70" : color(s),
               fillOpacity: 1,
             }}
           >
@@ -133,7 +134,7 @@ function StationMapContent({
       )}
       {clusterMembers ? (
         <ClusterLegend groups={groups} stations={stations} membership={membership} />
-      ) : (
+      ) : !selectionOnly && (
         <div className="map-legend">
             <span>
               <i className="dot teal" /> Có xe

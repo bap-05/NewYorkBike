@@ -98,6 +98,7 @@ export default function DayAheadPanel({ stations }) {
           stations={stations}
           selected={station}
           compact
+          selectionOnly
           onSelect={selectStation}
           focusSelected={Boolean(stationId)}
         />

@@ -35,7 +35,7 @@ test("published clusters have matching map colors, membership and real feature s
   });
   await page.getByLabel("Chế độ bản đồ").selectOption("availability");
   await expect(page.getByLabel("Tìm trạm theo tên")).toBeVisible();
-  await page.goto("/analysis");
+  await page.goto("/clusters");
   const map = page.locator(".cluster-explorer");
   const marker = map.locator(`path.leaflet-interactive[fill="${clusterColor(labels[0])}"]`).first();
   await marker.click();

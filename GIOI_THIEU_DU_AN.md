@@ -11,7 +11,8 @@
 | **Tổng quan** | `/` | Xem nhanh số trạm theo dõi, tình trạng xe từ mẫu gần nhất, bản đồ và trạng thái các tác vụ xử lý dữ liệu. |
 | **Bản đồ** | `/map` | Tìm và lọc trạm, chọn trạm trên bản đồ, xem số xe và chỗ trả, rồi mở trang chi tiết. |
 | **Các trạm và chi tiết trạm** | `/stations`, `/stations/:stationId` | Chọn trạm để xem thông tin, số xe và chỗ trả, thời tiết tại tọa độ trạm và biểu đồ lịch sử số xe có thể thuê. |
-| **Phân tích và phân nhóm** | `/analysis` | Xem thống kê và khám phá dữ liệu theo kỳ, bao gồm biểu đồ theo thời gian, xu hướng, mùa vụ, phân rã STL và tương quan. Phần phân nhóm cho biết các trạm có hành vi tương đồng, kèm bản đồ và thông tin nhóm. |
+| **Phân tích** | `/analysis` | Xem thống kê và khám phá dữ liệu theo kỳ, bao gồm biểu đồ theo thời gian, xu hướng, mùa vụ, phân rã STL và tương quan. |
+| **Phân nhóm** | `/clusters` | Xem kết quả phân cụm đã công bố, bản đồ trạm theo màu nhóm và chi tiết nhóm qua ghim hoặc chú giải. |
 | **Dự báo** | `/predictions` | Xem dự báo từng giờ ngày mai, phân loại mức xe và đối chiếu với thực tế của ngày hôm qua. Phần bên dưới hiển thị dự báo sau 30 phút theo từng trạm. |
 | **Lịch sử dự báo 30 phút** | `/predictions/:stationId/history` | Mở từ thẻ dự báo của một trạm để xem những lần dự báo đã công bố và đối chiếu với số xe thực tế khi đã có mẫu phù hợp. |
 
@@ -65,7 +66,7 @@ docker compose ps
 ```
 
 - Mở [website](http://127.0.0.1:8080/) và [Swagger](http://127.0.0.1:8000/docs).
-- Vào **Phân tích** để xem 9 tổ hợp biểu đồ, xu hướng, mùa vụ, tương quan và phân nhóm. Có thể mở F12, tab **Network**, để thấy request tải dữ liệu.
+- Vào **Phân tích** để xem 9 tổ hợp biểu đồ, xu hướng, mùa vụ và tương quan. Vào **Phân nhóm** để xem bản đồ nhóm trạm. Có thể mở F12, tab **Network**, để thấy request tải dữ liệu.
 - Vào **Dự báo** để thử chọn trạm bằng bản đồ hoặc tìm kiếm, rồi xem kết quả theo từng giờ.
 - Dùng `docker compose down` để xóa các container của dự án. Chạy lại lệnh `docker compose up --build -d --wait` để dựng lại. Dữ liệu database được lưu trên Aiven.
 

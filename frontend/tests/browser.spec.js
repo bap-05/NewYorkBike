@@ -64,28 +64,27 @@ test("five pages read live API, station search/detail, filters, mobile and reque
 
   await page
     .getByRole("navigation")
-    .getByRole("link", { name: "Phân tích & phân nhóm" })
+    .getByRole("link", { name: "Phân tích", exact: true })
     .click();
   await expect(
-    page.getByRole("heading", { name: "Hiểu nhịp vận hành." }),
+    page.getByRole("heading", { name: "Phân tích dữ liệu" }),
   ).toBeVisible();
   await expect(
     page
-      .locator("table")
+      .locator(".chart > .calendar-chart-preview")
       .first()
       .or(page.getByRole("heading", { name: "Chưa có thống kê phù hợp" })),
   ).toBeVisible();
   await page
     .getByRole("combobox", { name: "Tổng hợp", exact: true })
     .selectOption("hour");
-  await expect(
-    page.getByRole("heading", { name: "Nhóm trạm tương đồng" }),
-  ).toBeVisible();
   await expect(page.locator(".panel .loading")).toHaveCount(0);
   await page.screenshot({
     path: "../artifacts/frontend/analysis-desktop.png",
     fullPage: true,
   });
+  await page.getByRole("navigation").getByRole("link", { name: "Phân nhóm", exact: true }).click();
+  await expect(page.getByRole("heading", { name: "Nhóm trạm tương đồng" })).toBeVisible();
 
   await page
     .getByRole("navigation")
