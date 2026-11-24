@@ -168,6 +168,7 @@ function AnalysisContent({ stations }) {
                   <LineChart
                     key={resourceKey}
                     label={metrics[metric]}
+                    domain={metric === "temperature_bikes_correlation" ? [-1, 1] : undefined}
                     inspect
                     expandable
                     unit={metric === "available_bikes_mean" ? " xe" : ""}

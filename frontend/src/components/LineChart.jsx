@@ -9,6 +9,7 @@ export default function LineChart({
   gapMinutes = 45,
   label = "Số xe",
   ceiling,
+  domain,
   inspect = false,
   expandable = false,
   unit = " xe",
@@ -21,9 +22,10 @@ export default function LineChart({
   const allTimes = points.map((p) => Date.parse(p.at)).filter(Number.isFinite);
   const minT = Math.min(...allTimes),
     maxT = Math.max(...allTimes);
-  const maxY = Math.max(1, ceiling || 0, ...valid.map((p) => p.value));
+  const minY = domain?.[0] ?? Math.min(0, ...valid.map((p) => p.value));
+  const maxY = domain?.[1] ?? Math.max(1, ceiling || 0, ...valid.map((p) => p.value));
   const x = (at) => 54 + ((Date.parse(at) - minT) / (maxT - minT || 1)) * 746;
-  const y = (value) => 224 - (value / maxY) * 190;
+  const y = (value) => 224 - ((value - minY) / (maxY - minY || 1)) * 190;
   const activeSegment = cursor === null ? null : segments.find(
     (segment) => cursor >= x(segment[0].at) - 4 && cursor <= x(segment.at(-1).at) + 4,
   );
@@ -55,13 +57,13 @@ export default function LineChart({
             <line
               x1="54"
               x2="800"
-              y1={y(t * maxY)}
-              y2={y(t * maxY)}
+              y1={y(minY + t * (maxY - minY))}
+              y2={y(minY + t * (maxY - minY))}
               stroke="#e4eae7"
               strokeDasharray="4 5"
             />
-            <text x="40" y={y(t * maxY) + 4} textAnchor="end">
-              {number(t * maxY, 1)}
+            <text x="40" y={y(minY + t * (maxY - minY)) + 4} textAnchor="end">
+              {number(minY + t * (maxY - minY), 1)}
             </text>
           </g>
         ))}
