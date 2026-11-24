@@ -21,12 +21,14 @@ jobs:
       - uses: actions/checkout@v7
         with:
           persist-credentials: false
+          # Schedules live on main; use the deployed code branch when set.
+          ref: ${{ vars.ANALYSIS_CODE_REF || github.ref }}
       - uses: actions/setup-python@v7
         with:
           python-version: '3.12'
           cache: pip
       - run: python -m pip install -r requirements.txt
-      - name: Analyze Silver and publish Gold once
+      - name: Analyze Silver, publish Gold and precompute EDA charts
         env:
           PYTHONUNBUFFERED: '1'
           MYSQL_HOST: ${{ secrets.MYSQL_HOST }}
