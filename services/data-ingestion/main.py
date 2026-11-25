@@ -12,7 +12,7 @@ from ingestion.clients.proxy import OutboundClient
 from ingestion.clients.citibike_client import CitiBikeClient
 from ingestion.clients.weather_client import WeatherClient
 from ingestion.collector import collect_once
-from ingestion.bronze import BronzeArchive, RecordingClient
+from ingestion.bronze import DatabaseBronzeArchive, RecordingClient
 from shared.config import Settings
 from shared.presentation import APP_NAME
 from shared.database import ingestion_session, make_engine
@@ -55,7 +55,7 @@ def run(settings, *, list_only=False, schedule=False, limit=10, interval_minutes
         if not settings.station_ids:
             raise ValueError("Fill STATION_IDS using real IDs from --list-stations")
         engine = make_engine(settings)
-        bronze = BronzeArchive(settings.bronze_dir)
+        bronze = DatabaseBronzeArchive(engine)
         recorded_client = RecordingClient(client, bronze)
         citibike, weather = CitiBikeClient(recorded_client, settings), WeatherClient(recorded_client, settings)
         try:
@@ -63,6 +63,9 @@ def run(settings, *, list_only=False, schedule=False, limit=10, interval_minutes
             while True:
                 try:
                     with ingestion_session(engine) as session:
+                        removed = bronze.purge_expired(utcnow())
+                        if removed:
+                            logger.info("Purged %d expired Bronze entries", removed)
                         result = collect_once(session, citibike, weather, settings.station_ids,
                                               scheduled_at=slot, bronze=bronze)
                         logger.info("run=%s sample_time=%s status=%s valid_bikes=%s errors=%s attempts=%s",

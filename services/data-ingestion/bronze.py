@@ -1,5 +1,7 @@
 """Append-only response bodies and an atomic manifest for each collection attempt."""
 from contextlib import suppress
+from datetime import timedelta
+import gzip
 import hashlib
 import json
 import math
@@ -8,6 +10,10 @@ from pathlib import Path
 import tempfile
 from urllib.parse import urlsplit, urlunsplit
 from uuid import uuid4
+
+from sqlalchemy import Column, DateTime, JSON, LargeBinary, MetaData, String, Table
+from sqlalchemy.dialects.mysql import LONGBLOB
+from sqlalchemy.exc import SQLAlchemyError
 
 from shared.time import as_utc, utcnow
 
@@ -70,12 +76,21 @@ class BronzeArchive:
             "responses": [], "network_failures": [], "weather_reuse": [],
         }
         try:
-            self._directory.mkdir(parents=True, exist_ok=False)
+            self._prepare_attempt()
             self._save_manifest()
         except OSError:
             raise BronzeError("Cannot create Bronze archive; check storage path, permissions and disk space") from None
         self.active = True
         return self.manifest_path
+
+    def _prepare_attempt(self):
+        self._directory.mkdir(parents=True, exist_ok=False)
+
+    def _save_body(self, filename, body):
+        with (self._directory / filename).open("xb") as stream:
+            stream.write(body)
+            stream.flush()
+            os.fsync(stream.fileno())
 
     def _save_manifest(self):
         temporary = None
@@ -110,10 +125,7 @@ class BronzeArchive:
             else:
                 filename = f"response_{len(self._manifest['responses']) + 1:04d}_{metadata['response_id']}.body"
                 # Exclusive creation: never overwrite a previous response, even on retry.
-                with (self._directory / filename).open("xb") as stream:
-                    stream.write(body)
-                    stream.flush()
-                    os.fsync(stream.fileno())
+                self._save_body(filename, body)
                 metadata.update(body_file=filename, size_bytes=len(body), sha256=hashlib.sha256(body).hexdigest())
             self._manifest["responses"].append(metadata)
             self._save_manifest()
@@ -161,6 +173,59 @@ class BronzeArchive:
             with suppress(BronzeError):
                 self.finish("aborted")
         self.active = False
+
+
+bronze_entries = Table(
+    "du_lieu_tho_bronze", MetaData(),
+    Column("archive_path", String(255), primary_key=True),
+    Column("stored_at", DateTime, nullable=False, index=True),
+    Column("manifest", JSON),
+    Column("compressed_body", LargeBinary().with_variant(LONGBLOB(), "mysql")),
+)
+
+
+class DatabaseBronzeArchive(BronzeArchive):
+    """Persist captures independently of the Silver transaction."""
+
+    def __init__(self, engine):
+        super().__init__(Path.cwd())
+        self.engine = engine
+
+    @property
+    def manifest_path(self):
+        path = super().manifest_path
+        return f"mysql:{path}" if path is not None else None
+
+    def _prepare_attempt(self):
+        self._insert(super().manifest_path, manifest=self._manifest)
+
+    def _save_manifest(self):
+        try:
+            with self.engine.begin() as connection:
+                connection.execute(bronze_entries.update().where(
+                    bronze_entries.c.archive_path == super().manifest_path
+                ).values(manifest=self._manifest))
+        except SQLAlchemyError:
+            raise OSError("Cannot update Bronze manifest") from None
+
+    def _save_body(self, filename, body):
+        path = self._directory.relative_to(self.root) / filename
+        self._insert(path.as_posix(), compressed_body=gzip.compress(body, compresslevel=3))
+
+    def _insert(self, path, **values):
+        try:
+            with self.engine.begin() as connection:
+                connection.execute(bronze_entries.insert().values(
+                    archive_path=path, stored_at=utcnow().replace(tzinfo=None), **values))
+        except SQLAlchemyError:
+            raise OSError("Cannot insert Bronze entry") from None
+
+    def purge_expired(self, now):
+        cutoff = (as_utc(now) - timedelta(days=7)).replace(tzinfo=None)
+        with self.engine.begin() as connection:
+            result = connection.execute(bronze_entries.delete().where(
+                bronze_entries.c.stored_at <= cutoff))
+            return result.rowcount
 
 
 class RecordingClient:

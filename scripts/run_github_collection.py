@@ -1,4 +1,4 @@
-"""One CI collection; secrets stay in env/temp CA, Bronze is uploaded by the workflow."""
+"""One CI collection; secrets stay in env/temp CA and Bronze is stored in MySQL."""
 import json
 import os
 from pathlib import Path
@@ -29,8 +29,8 @@ def station_ids():
 
 
 def check_migration(settings):
-    """Accept 0003 and known additive upgrades, without requiring Gold to exist."""
-    check_schema(settings, required_revision="0003_bronze",
+    """Check that database-backed Bronze storage has been migrated."""
+    check_schema(settings, required_revision="0008_bronze_storage",
                  models=(Station, CollectionRun, BikeObservation, WeatherObservation, ObservationWeatherLink))
 
 
@@ -83,7 +83,7 @@ def main():
         summary["finished_at_utc"] = utcnow().isoformat()
         summary["exit_code"] = exit_code
         bronze_dir.mkdir(parents=True, exist_ok=True)
-        # Uploaded with Bronze, so GitHub run ID maps back to the DB manifest path.
+        # Retain the list for summaries that include legacy filesystem captures.
         summary["manifests"] = sorted(path.relative_to(bronze_dir).as_posix()
                                       for path in bronze_dir.glob("citibike/**/manifest.json"))
         (bronze_dir / "github_collection.json").write_text(json.dumps(summary, indent=2) + "\n", encoding="utf-8")

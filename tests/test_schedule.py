@@ -51,6 +51,7 @@ def run_fake_scheduler(monkeypatch, settings, *, start, first_duration, stop_aft
     monkeypatch.setattr(main, "OutboundClient", client)
     monkeypatch.setattr(main, "ingestion_session", session)
     monkeypatch.setattr(main, "make_engine", lambda _: SimpleNamespace(dispose=lambda: disposed.append(True)))
+    monkeypatch.setattr(main.DatabaseBronzeArchive, "purge_expired", lambda self, now: 0)
     monkeypatch.setattr(main, "collect_once", collect)
     monkeypatch.setattr(main, "utcnow", lambda: clock[0])
     monkeypatch.setattr(main.time, "sleep", lambda seconds: clock.__setitem__(0, clock[0] + timedelta(seconds=seconds)))

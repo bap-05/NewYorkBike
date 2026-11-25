@@ -43,12 +43,12 @@ jobs:
           OUTBOUND_PROXY_URLS: ${{ secrets.OUTBOUND_PROXY_URLS || '[]' }}
           STATION_IDS: ${{ vars.STATION_IDS }}
         run: python -m scripts.run_github_collection
-      - name: Save Bronze outside the temporary runner
+      - name: Save ingestion run summary
         if: always() && steps.collect.outcome != 'skipped'
         uses: actions/upload-artifact@v7
         with:
-          name: citibike-bronze-${{ github.run_id }}-${{ github.run_attempt }}
-          path: data/bronze/
+          name: citibike-collection-${{ github.run_id }}-${{ github.run_attempt }}
+          path: data/bronze/github_collection.json
           if-no-files-found: error
           retention-days: 7
           compression-level: 9

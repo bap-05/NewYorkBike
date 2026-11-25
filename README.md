@@ -128,7 +128,7 @@ Kiểm tra kết nối và nâng schema:
 .venv\Scripts\python.exe -m alembic current
 ```
 
-Migration hiện tại là `0007_vietnamese_names`, sử dụng tên bảng nghiệp vụ tiếng Việt không dấu. Với database đã có dữ liệu, sao lưu và kiểm tra trạng thái migration trước khi nâng cấp; không tự `stamp head` để bỏ qua lỗi. Xem [hướng dẫn tên bảng](docs/Ten_Bang_Tieng_Viet.md).
+Migration `0008_bronze_storage` thêm bảng `du_lieu_tho_bronze`. Service ingestion lưu phản hồi gốc dưới dạng gzip trước khi phân tích dữ liệu cho Silver. Mỗi lượt ingestion dọn các bản ghi Bronze đã lưu đủ 7 ngày theo UTC. File Bronze từ những lượt thu thập cũ vẫn có thể đối chiếu tại đường dẫn đã ghi trong lịch sử.
 
 ## Chạy website
 
@@ -297,7 +297,7 @@ Xem hoạt động của bốn worker bằng `docker compose logs --tail=50 data
 
 Các workflow trong `.github/workflows/` hỗ trợ chạy thủ công và theo lịch, dùng secrets/variables của repository thay cho `.env` trên máy cá nhân. Lịch cloud được cấu hình riêng với lịch CLI; xem [hướng dẫn GitHub Actions và Aiven](docs/Deploy_GitHub_Actions_Aiven.md).
 
-Bronze trên GitHub Actions được lưu bằng artifact với thời hạn 7 ngày. Cần sao lưu riêng nếu muốn giữ lâu hơn; dữ liệu MySQL và mô hình/báo cáo cục bộ không tự đi kèm repository.
+Các lượt thu thập trên GitHub Actions cũng lưu Bronze vào MySQL. Workflow đính kèm tóm tắt lượt chạy với thời hạn 7 ngày.
 
 ## Tài liệu
 
